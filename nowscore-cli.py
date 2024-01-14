@@ -31,7 +31,6 @@ tz="europe/rome"
 season_year="2023"
 #season code list
 sc={"SA":135,
-    "SB":136,
     "PL":39,
     "BL":78,
     "LIGA":140,
@@ -40,7 +39,8 @@ sc={"SA":135,
     "SL":203,
     "PPL":94,
     "UCL":2,
-    "UEL":3}
+    "UEL":3,
+    "SB":136}
 
 scext={"SA":"Italy Serie A",
        "PL":"England Premier League",
@@ -51,7 +51,8 @@ scext={"SA":"Italy Serie A",
        "SL":"Turkey Süper Lig",
        "PPL":"Portugal Primeira Liga",
        "UCL":"UEFA Champions League Cup",
-       "UEL":"UEFA Europa League Cup"}
+       "UEL":"UEFA Europa League Cup",
+       "SB":"Italy Serie B",}
 
 scl=list(sc.keys()) #convertiamo il dizionario in lista in modo da poter meglio gestire
 sclv=list(scext.values())
@@ -59,16 +60,17 @@ sclv=list(scext.values())
 
 # Aggiungi i parametri opzionali con i loro nomi, descrizioni e valori predefiniti
 parser.add_argument("-l", "--league", help=f"""Show league options:
-                                              - Italy SERIE A={scl[0]}
-                                              - England PREMIER LEAGUE={scl[1]}
-                                              - Germany BUNDESLIGA={scl[2]}
-                                              - Spain LA LIGA={scl[3]}
-                                              - France LIGUE 1={scl[4]}
+                                              - {sclv[0]}={scl[0]}
+                                              - {sclv[1]}={scl[1]}
+                                              - {sclv[2]}={scl[2]}
+                                              - {sclv[3]}={scl[3]}
+                                              - {sclv[4]}={scl[4]}
                                               - {sclv[5]}={scl[5]}
                                               - {sclv[6]}={scl[6]}
                                               - {sclv[7]}={scl[7]}
                                               - {sclv[8]}={scl[8]}
-                                              - {sclv[9]}={scl[9]}""", default=None)
+                                              - {sclv[9]}={scl[9]},
+                                                {sclv[10]}={scl[10]}""", default=None)
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
                                                 if you want show stand of tournament group Uefa
