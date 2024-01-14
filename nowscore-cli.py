@@ -28,9 +28,10 @@ apikey=str(rapidkey)
 #set timezone
 tz="europe/rome"
 #set league's ids dictonary
-season_year="2022"
+season_year="2023"
 #season code list
 sc={"SA":135,
+    "SB":136,
     "PL":39,
     "BL":78,
     "LIGA":140,
