@@ -22,21 +22,55 @@ You can use the following options to interact with the application:
 
 1. Show current results of the Premier League:
    
-   ```
-   nowscore -l pl
+   ```bash
+   nowscore-cli -l pl
    ```
 
 2. Show the standings of the Spanish La Liga:
    
-   ```
-   nowscore -l liga -s
+   ```bash
+   nowscore-cli -l liga -s
    ```
 
 3. Show all matches in the Premier League from today to 30 days ahead:
    
+   ```bash
+   nowscore-cli -l pl -t=30
    ```
-   nowscore -l pl -t=30
+
+4. Show all matches in the UEFA Europa League from the past week:
+   
    ```
+   nowscore-cli -l uel -t=-7
+   ```
+
+5. Show standing of single season of Uefa Champions League
+
+6. ```bash
+   nowscore-cli -l ucl -s 0 "season A" 1 "season B" 2 "season C"...
+   ```
+
+## Supported League Codes
+
+You can use the following league codes to access information for the desired football leagues using the application:
+
+| Code | League                 |
+| ---- | ---------------------- |
+| SA   | Italy Serie A          |
+| PL   | England Premier League |
+| BL   | Germany Bundesliga     |
+| LIGA | Spain La Liga          |
+| L1   | France Ligue 1         |
+| ER   | Netherlands Eredivisie |
+| SL   | Turkey Süper Lig       |
+| PPL  | Portugal Primeira Liga |
+| UCL  | UEFA Champions League  |
+| UEL  | UEFA Europa League     |
+| SB   | Italy Serie B          |
+
+Use these codes to view results, standings, and fixtures for your desired football leagues.
+
+We hope this table helps you effectively utilize the application!
 
 ## Support
 
