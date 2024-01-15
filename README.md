@@ -40,7 +40,7 @@ You can use the following options to interact with the application:
 
 4. Show all matches in the UEFA Europa League from the past week:
    
-   ```
+   ```bash
    nowscore-cli -l uel -t=-7
    ```
 
