@@ -72,6 +72,44 @@ Use these codes to view results, standings, and fixtures for your desired footba
 
 We hope this table helps you effectively utilize the application!
 
+
+
+# Obtain a RapidAPI Key for the Footbal API
+
+## Steps
+
+1. Register on RapidAPI
+   
+   - Go to [RapidAPI](https://rapidapi.com/) and click on "Sign Up" to create an account.
+   - Complete the registration process and log in to your account.
+
+2. Search for the Footbal API
+   
+   - Use the search bar on RapidAPI to find the Footbal API.
+   - Click on the API to view the details and subscription options.
+
+3. Choose a subscription plan
+   
+   - Select a subscription plan that meets your needs. Free and paid plans may be available.
+
+4. Get the API Key
+   
+   - After choosing a plan, an API key will be generated for you.
+   - Copy the API key and store it in a secure location.
+
+5. Use the API Key
+   
+   - Use the API key to authenticate and access the Footbal API data in your requests.
+
+## Additional Resources
+
+- For further information on using the Footbal API, refer to the documentation provided on RapidAPI.
+- If you encounter any issues or have questions, contact RapidAPI support for assistance.
+
+By following these steps, you will be able to obtain a RapidAPI key for the Footbal API and start using football data. Good luck!
+
+Please note that the obtained token key should be placed in the file **rapidkey1.key.**
+
 ## Support
 
 For any issues or questions, please contact our support team at aniello@discala.org
