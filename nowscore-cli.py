@@ -1,6 +1,9 @@
 #Now score version
 version=0.185
 
+#new version with blessing
+
+
 import argparse
 import datetime
 import requests
