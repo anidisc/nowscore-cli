@@ -73,8 +73,9 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
                                               - {sclv[6]}={scl[6]}
                                               - {sclv[7]}={scl[7]}
                                               - {sclv[8]}={scl[8]}
-                                              - {sclv[9]}={scl[9]},
-                                                {sclv[10]}={scl[10]}""", default=None)
+                                              - {sclv[9]}={scl[9]}
+                                              - {sclv[10]}={scl[10]}
+                                              - {sclv[11]}={scl[11]}""", default=None)
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
                                                 if you want show stand of tournament group Uefa
