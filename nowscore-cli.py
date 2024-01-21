@@ -42,7 +42,8 @@ sc={"SA":135,
     "PPL":94,
     "UCL":2,
     "UEL":3,
-    "SB":136}
+    "SB":136,
+    "JUP":144}
 
 scext={"SA":"Italy Serie A",
        "PL":"England Premier League",
@@ -54,7 +55,8 @@ scext={"SA":"Italy Serie A",
        "PPL":"Portugal Primeira Liga",
        "UCL":"UEFA Champions League Cup",
        "UEL":"UEFA Europa League Cup",
-       "SB":"Italy Serie B",}
+       "SB":"Italy Serie B",
+       "JUP":"Belgium Jupyter League"}
 
 scl=list(sc.keys()) #convertiamo il dizionario in lista in modo da poter meglio gestire
 sclv=list(scext.values())
