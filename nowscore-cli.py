@@ -11,7 +11,7 @@ from tabulate import tabulate
 import tabulate as tabulate2
 
 #init curse to blessed way 
-import blessed 
+#import blessed 
 
 # Crea un oggetto parser
 parser = argparse.ArgumentParser(description="NOWScore Soccer Events CLI")
