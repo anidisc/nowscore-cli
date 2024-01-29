@@ -115,8 +115,12 @@ def get_match_list(idleague,datestart=datetime.date.today(),datestop=datetime.da
     }
 
     t=requests.request("GET", url, headers=headers, params=querystring)
+
+    remaining_calls = response.headers.get("X-RateLimit-Requests-Remaining")
+    reset_time = response.headers.get("X-RateLimit-Reset")
+
     tab=json.loads(t.text)
-    return tab["response"]
+    return tab["response"],remaining_calls
 
 def get_standing_season(id,gruop=0):
     url = "https://api-football-v1.p.rapidapi.com/v3/standings"
@@ -142,7 +146,7 @@ def get_start_11(id):
         "X-RapidAPI-Key": apikey,
         "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
     }
-    response = requests.get(url, headers=headers, params=querystring)
+    response = requests.get(url, headers=headers, params=querystring)  
     tab=json.loads(response.text)
     thname,taname=tab["response"][0]["team"]["name"],tab["response"][1]["team"]["name"]
     start11home,start11away=[],[]
@@ -394,7 +398,7 @@ if (args.league!=None) and (args.league.upper() in scl):
         else:
             tdeltafrom=datetime.date.today()+datetime.timedelta(tdelta)
             tdeltato=datetime.date.today()
-        p=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
+        p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
         ev=[]
         for m in p:
             #carichiamo i dati del matrch nella classe
@@ -404,7 +408,7 @@ if (args.league!=None) and (args.league.upper() in scl):
                         m["fixture"]["referee"],m["fixture"]["venue"]["name"],
                         m["fixture"]["venue"]["city"]))
         try:
-            selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato}").menu()
+            selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
             if selection!=-1:
                 #carichiamo gli eventi
                 pass
