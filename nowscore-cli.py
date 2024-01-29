@@ -134,8 +134,12 @@ def get_standing_season(id,gruop=0):
     }
 
     response = requests.request("GET", url, headers=headers, params=querystring)
+
+    remaining_calls = response.headers.get("X-RateLimit-Requests-Remaining")
+    reset_time = response.headers.get("X-RateLimit-Reset")
+
     tab=json.loads(response.text)
-    return tab["response"][0]["league"]["standings"][gruop]
+    return tab["response"][0]["league"]["standings"][gruop],remaining_calls
 
 def get_start_11(id):
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures/lineups"
@@ -378,7 +382,7 @@ if (args.league!=None) and (args.league.upper() in scl):
         if args.standing is None :
             args.standing=0
 
-        list_stand=get_standing_season(sc[args.league.upper()],args.standing)
+        list_stand,rem=get_standing_season(sc[args.league.upper()],args.standing)
         classifica=[["POS","TEAM","PO","ROUND","W","D","L","GF","GS"]]
         for t in list_stand:
             row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
@@ -386,7 +390,7 @@ if (args.league!=None) and (args.league.upper() in scl):
                 t["all"]["goals"]["for"],t["all"]["goals"]["against"]]
             classifica.append(row)
         #stampa la classifica
-        print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+"\n"
+        print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
               +tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
               +"\n")
         exit()
