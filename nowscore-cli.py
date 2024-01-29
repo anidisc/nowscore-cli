@@ -116,8 +116,8 @@ def get_match_list(idleague,datestart=datetime.date.today(),datestop=datetime.da
 
     t=requests.request("GET", url, headers=headers, params=querystring)
 
-    remaining_calls = response.headers.get("X-RateLimit-Requests-Remaining")
-    reset_time = response.headers.get("X-RateLimit-Reset")
+    remaining_calls = t.headers.get("X-RateLimit-Requests-Remaining")
+    reset_time = t.headers.get("X-RateLimit-Reset")
 
     tab=json.loads(t.text)
     return tab["response"],remaining_calls
