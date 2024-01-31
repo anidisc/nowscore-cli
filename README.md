@@ -67,6 +67,7 @@ You can use the following league codes to access information for the desired foo
 | UCL  | UEFA Champions League  |
 | UEL  | UEFA Europa League     |
 | SB   | Italy Serie B          |
+| JUP  | Belgium Jupiter League |
 
 Use these codes to view results, standings, and fixtures for your desired football leagues.
 
