@@ -1,5 +1,5 @@
 #Now score version
-version=0.185
+version=0.19
 
 import argparse
 import datetime
@@ -281,9 +281,9 @@ class Winmenu:
         curses.noecho()
         screen.keypad(1)
         curses.start_color()
-        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
+        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_GREEN)
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
-        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_GREEN)
+        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+2)<height else height-2
@@ -418,6 +418,7 @@ if (args.league!=None) and (args.league.upper() in scl):
                 pass
             else: 
                 #print(ev[1].flow_events())
+                print(f"NOWScore {version} richiesta di uscita dal programma!")
                 exit()
         except ValueError as error:
             print(f"errore {error}")
