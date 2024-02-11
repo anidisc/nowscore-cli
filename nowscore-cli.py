@@ -239,7 +239,7 @@ class Winmenu:
     def formatta_liste(self):
         liste=[]
         for event in self.events:
-            liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,"~",
+            liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
                        event.status,event.minutes," - ",event.date])
         # Crea una lista vuota per memorizzare le liste formattate
         liste_formattate = []
