@@ -1,5 +1,5 @@
 #Now score version
-version=0.19
+version=0.20
 
 import argparse
 import datetime
@@ -163,6 +163,31 @@ def get_start_11(id):
     start11=[start11home,start11away]
     return start11
 
+def get_statistic(id):
+
+    url = "https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics"
+
+    querystring = {"fixture":id}
+
+    headers = {
+        "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+        "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+    }
+
+    response = requests.get(url, headers=headers, params=querystring)
+    tab=json.loads(response.text)
+    teamh=tab["response"][0]["team"]["name"]
+    teama=tab["response"][1]["team"]["name"]
+    stathome,stataway=[],[]
+    for team1 in tab["response"][0]["statistics"]:
+        s=TeamStat(teamh,team1["type"],team1["value"])
+        stathome.append(s)
+    for team2 in tab["response"][1]["statistics"]:
+        s=TeamStat(teama,team2["type"],team2["value"])
+        stataway.append(s)
+    return [stathome,stataway]
+
+
 
 # Leggi gli argomenti dalla riga di comando
 args = parser.parse_args()
@@ -174,7 +199,14 @@ class Player:
         self.team=team
         self.num=number
         self.pos=position
-    
+
+#classe che cataloga le statistiche dell'incontro stabilite da rapidapi
+#esempio shot on goal, total shot, corner, etc   
+class TeamStat:
+    def __init__(self,teamName,type,value):
+        self.teamName=teamName
+        self.type=type
+        self.value=value
 
 class Match:
     def __init__(self,idmatch,thome,taway,ghome,gaway,status,min,datematch,referee,stadium,city):
@@ -221,14 +253,20 @@ class Match:
         return tabellaeventi
     #metodo che scarica la lista degli 11 di partenza
     def list_start11(self):
+    
         f1,f2=get_start_11(self.idfixture)
         lista11=[["","",self.teamhome,"","",self.teamaway],
                  ["--","--","","--","--",""]]
         for i1,i2 in zip(f1,f2):
             lista11.append([i1.num,i1.pos,i1.name,i2.num,i2.pos,i2.name])
         return lista11
-    
-        
+    #metodo che scarica la lista delle statistiche del match
+    def list_statistic(self):
+        '''
+         scrivere la funzione che carica la lista delle statistiche
+
+        '''
+
 
 class Winmenu:
     def __init__(self,events:list,title="select options"):
