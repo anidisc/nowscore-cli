@@ -319,9 +319,10 @@ class Winmenu:
         curses.noecho()
         screen.keypad(1)
         curses.start_color()
-        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_GREEN)
+        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
         curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
+        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+2)<height else height-2
@@ -371,7 +372,7 @@ class Winmenu:
                     data_win.box()
                     data_win.addstr(0, 5, selected_item)
                     data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
-                    data_win.addstr(len(data)+2,5,"press 'q' to exit 'f' show formations or 'ENTER' to close")
+                    data_win.addstr(len(data)+2,5,"'q' to exit 'f' formations 's' Match-Stats 'ENTER' to close")
                     table=self.tabulate_strings(data)
                     #table = tabulate(data, tablefmt='presto')
                     # table_lines = table.split('\n')
@@ -404,6 +405,13 @@ class Winmenu:
                             for r,line in enumerate(tablef):
                                 form_win.addstr(r+1,2,line)
 
+                            form_win.refresh()
+                        #finestra di stampa statistiche partite
+                        elif key2 == ord("s"):
+                            form_win=curses.newwin(17,65,2,2)
+                            form_win.box()
+                            form_win.bkgd(curses.color_pair(4))
+                            form_win.addstr(0,3,"Match Statistic")
                             form_win.refresh()
             elif key == ord("q"):
                 curses.endwin()
