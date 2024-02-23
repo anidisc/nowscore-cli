@@ -1,5 +1,5 @@
 #Now score version
-version=0.20
+version=0.21
 
 import argparse
 import datetime
@@ -260,12 +260,14 @@ class Match:
         for i1,i2 in zip(f1,f2):
             lista11.append([i1.num,i1.pos,i1.name,i2.num,i2.pos,i2.name])
         return lista11
+        
     #metodo che scarica la lista delle statistiche del match
     def list_statistic(self):
-        '''
-         scrivere la funzione che carica la lista delle statistiche
-
-        '''
+        f1,f2=get_statistic(self.idfixture)
+        list_stat=[[f1[0].teamName,"",f2[0].teamName],["--","","--"]]
+        for i1,i2 in zip(f1,f2):
+            list_stat.append([i1.value,i2.type,i2.value])
+        return list_stat
 
 
 class Winmenu:
@@ -408,10 +410,14 @@ class Winmenu:
                             form_win.refresh()
                         #finestra di stampa statistiche partite
                         elif key2 == ord("s"):
-                            form_win=curses.newwin(17,65,2,2)
+                            form_win=curses.newwin(22,60,2,2)
                             form_win.box()
                             form_win.bkgd(curses.color_pair(4))
                             form_win.addstr(0,3,"Match Statistic")
+                            dataf=self.events[selected].list_statistic()
+                            tablef=self.tabulate_strings(dataf)
+                            for r,line in enumerate(tablef):
+                                form_win.addstr(r+1,2,line)
                             form_win.refresh()
             elif key == ord("q"):
                 curses.endwin()
