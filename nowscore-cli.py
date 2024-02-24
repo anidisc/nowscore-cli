@@ -155,11 +155,15 @@ def get_start_11(id):
     thname,taname=tab["response"][0]["team"]["name"],tab["response"][1]["team"]["name"]
     start11home,start11away=[],[]
     for team1 in tab["response"][0]["startXI"]:
-        player=Player(team1["player"]["name"],thname,team1["player"]["number"],team1["player"]["pos"])
+        player=Player(team1["player"]["name"],
+                      thname,team1["player"]["number"],team1["player"]["pos"],
+                      tab["response"][0]["coach"]["name"],tab["response"][0]["formation"])
         start11home.append(player)
     for team2 in tab["response"][1]["startXI"]:
-        player=Player(team2["player"]["name"],taname,team2["player"]["number"],team2["player"]["pos"])
-        start11away.append(player)
+         player=Player(team2["player"]["name"],
+                      taname,team2["player"]["number"],team2["player"]["pos"],
+                      tab["response"][1]["coach"]["name"],tab["response"][1]["formation"])
+         start11away.append(player)
     start11=[start11home,start11away]
     return start11
 
@@ -194,11 +198,13 @@ args = parser.parse_args()
 
 #creiamo una classe per la catalogalizzazione degli incontri 
 class Player:
-    def __init__(self,name,team,number,position) -> None:
+    def __init__(self,name,team,number,position,coach,scheme) -> None:
         self.name=name
         self.team=team
         self.num=number
         self.pos=position
+        self.coach=coach
+        self.scheme=scheme
 
 #classe che cataloga le statistiche dell'incontro stabilite da rapidapi
 #esempio shot on goal, total shot, corner, etc   
@@ -253,12 +259,14 @@ class Match:
         return tabellaeventi
     #metodo che scarica la lista degli 11 di partenza
     def list_start11(self):
-    
         f1,f2=get_start_11(self.idfixture)
-        lista11=[["","",self.teamhome,"","",self.teamaway],
-                 ["--","--","","--","--",""]]
+        lista11=[["","",self.teamhome,self.goalshome,self.goalsaway,self.teamaway],
+                 ["","",f1[0].scheme,"","",f2[0].scheme],
+                 ["N","P","--","--","N","P",""]]
         for i1,i2 in zip(f1,f2):
             lista11.append([i1.num,i1.pos,i1.name,i2.num,i2.pos,i2.name])
+        lista11.append(["--","--","--","--","--","--"])
+        lista11.append(["Coach",":",f1[0].coach,"Coach",":",f2[0].coach])
         return lista11
         
     #metodo che scarica la lista delle statistiche del match
@@ -324,7 +332,7 @@ class Winmenu:
         curses.start_color()
         curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
-        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
+        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_GREEN)
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
 
         height, width = screen.getmaxyx()
@@ -388,11 +396,11 @@ class Winmenu:
                         data_win.erase()
                         break
             elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
-                form_win=curses.newwin(17,65,2,2)
+                form_win=curses.newwin(19,65,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(3))
-                form_win.addstr(0,3,"Star 11 formation")
-                form_win.addstr(16,3,"q to close")
+                form_win.addstr(0,3,"Start 11 Line UP")
+                form_win.addstr(18,3,"q to close")
                 dataf=self.events[selected].list_start11()
                 tablef=self.tabulate_strings(dataf)
                 for r,line in enumerate(tablef):
