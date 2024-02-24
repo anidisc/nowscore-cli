@@ -332,7 +332,7 @@ class Winmenu:
         curses.start_color()
         curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
-        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_GREEN)
+        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
 
         height, width = screen.getmaxyx()
@@ -452,11 +452,13 @@ if (args.league!=None) and (args.league.upper() in scl):
             args.standing=0
 
         list_stand,rem=get_standing_season(sc[args.league.upper()],args.standing)
-        classifica=[["POS","TEAM","PO","ROUND","W","D","L","GF","GS"]]
+        classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
         for t in list_stand:
             row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
                 t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
-                t["all"]["goals"]["for"],t["all"]["goals"]["against"]]
+                t["all"]["goals"]["for"],t["all"]["goals"]["against"],
+                t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
+                ' '.join(t["form"]),t["status"]]
             classifica.append(row)
         #stampa la classifica
         print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
