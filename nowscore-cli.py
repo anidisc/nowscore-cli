@@ -264,8 +264,8 @@ class Match:
     #metodo che scarica la lista delle statistiche del match
     def list_statistic(self):
         f1,f2=get_statistic(self.idfixture)
-        list_stat=[["Statistic Date","|",self.teamhome,self.teamaway],
-                   ["--","|","--","--"]]
+        list_stat=[["Statistic Date","|",self.teamhome,self.teamaway,":",self.goalshome,self.goalsaway],
+                   ["--","|","--","--","","",""]]
         for i1,i2 in zip(f1,f2):
             list_stat.append([i1.type,"|",i1.value,i2.value])
         return list_stat
@@ -369,7 +369,7 @@ class Winmenu:
                     selected += 1
                     if selected >= scroll_offset + max_items:
                         scroll_offset += 1
-            elif (key == ord("\n") and (self.events[selected].status != "NS")):
+            elif (key == ord("\n") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
                 selected_item = options[selected]
                 data=self.events[selected].flow_events()
                 data_win = curses.newwin(len(data)+3,width-5,4,4)
@@ -387,7 +387,7 @@ class Winmenu:
                     if pausekey==ord("q"):
                         data_win.erase()
                         break
-            elif (key == ord("f")and(self.events[selected].status != "NS")):
+            elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
                 form_win=curses.newwin(17,65,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(3))
@@ -405,7 +405,7 @@ class Winmenu:
                         form_win.erase()
                         break
             #finestra di stampa statistiche partite
-            elif (key == ord("s") and (self.events[selected].status != "NS")):
+            elif (key == ord("s") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST") ):
                 form_win=curses.newwin(23,60,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(4))
@@ -425,7 +425,11 @@ class Winmenu:
                         break
             #set exit point        
             elif key == ord("q"):
+                menu_win.erase()
+                screen.clear()
+                screen.refresh()
                 curses.endwin()
+                
                 return -1
 
 
