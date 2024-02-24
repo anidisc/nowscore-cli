@@ -331,9 +331,7 @@ class Winmenu:
         seth=len(options)+2 if (len(options)+2)<height else height-2
         setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2 
 
-        menu_win = curses.newwin(seth, setw, 1, 5)
-        menu_win.box()
-        menu_win.addstr(0, 5, self.title)
+        
 
         menu_items = len(options)
         max_items = height - 4
@@ -344,6 +342,11 @@ class Winmenu:
             scroll_offset = 0
             selected = -1
         while True:
+            screen.clear()
+            menu_win = curses.newwin(seth, setw, 1, 5)
+            menu_win.box()
+            menu_win.addstr(0, 5, self.title)
+            menu_win.addstr(seth-1,3,"['q' exit 'f' 11-lineups 's' match-Stats 'ENTER' data]")
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
@@ -367,59 +370,60 @@ class Winmenu:
                     if selected >= scroll_offset + max_items:
                         scroll_offset += 1
             elif key == ord("\n"):
-                if selected != -1:
-                    curses.endwin()
-                    selected_item = options[selected]
-                    data=self.events[selected].flow_events()
-                    data_win = curses.newwin(len(data)+3,width-5,4,4)
-                    data_win.box()
-                    data_win.addstr(0, 5, selected_item)
-                    data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
-                    data_win.addstr(len(data)+2,5,"'q' to exit 'f' formations 's' Match-Stats 'ENTER' to close")
-                    table=self.tabulate_strings(data)
-                    #table = tabulate(data, tablefmt='presto')
-                    # table_lines = table.split('\n')
-                    # table_centered = [line.center(data_win.getmaxyx()[1]) for line in table_lines]
-                    # table_str = '\n'.join(table_centered)
-                    for r,line in enumerate(table):
-                        data_win.addstr(r+1,2,line)
-                    #data_win.addstr(3, 3, table)
-                    data_win.refresh()
+                selected_item = options[selected]
+                data=self.events[selected].flow_events()
+                data_win = curses.newwin(len(data)+3,width-5,4,4)
+                data_win.box()
+                data_win.addstr(0, 5, selected_item)
+                data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
+                data_win.addstr(len(data)+2,5,"'q' to close")
+                table=self.tabulate_strings(data)
+                for r,line in enumerate(table):
+                    data_win.addstr(r+1,2,line)
+                #data_win.addstr(3, 3, table)
+                data_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        data_win.erase()
+                        break
+            elif key == ord("f"):
+                form_win=curses.newwin(17,65,2,2)
+                form_win.box()
+                form_win.bkgd(curses.color_pair(3))
+                form_win.addstr(0,3,"Star 11 formation")
+                form_win.addstr(16,3,"q to close")
+                dataf=self.events[selected].list_start11()
+                tablef=self.tabulate_strings(dataf)
+                for r,line in enumerate(tablef):
+                    form_win.addstr(r+1,2,line)
 
-                    #data_win.addstr(3,3,data)
-                    #data_win.refresh()
-                    while True:
-                        key2 = screen.getch()
-                        if key2 == ord("\n"):
-                            data_win.erase()
-                            data_win.refresh()
-                            menu_win.refresh()
-                            break
-                        elif key2 == ord("q"):
-                            curses.endwin()
-                            return -1
-                        elif key2 == ord("f"):
-                            form_win=curses.newwin(17,65,2,2)
-                            form_win.box()
-                            form_win.bkgd(curses.color_pair(3))
-                            form_win.addstr(0,3,"Star 11 formation")
-                            dataf=self.events[selected].list_start11()
-                            tablef=self.tabulate_strings(dataf)
-                            for r,line in enumerate(tablef):
-                                form_win.addstr(r+1,2,line)
-
-                            form_win.refresh()
-                        #finestra di stampa statistiche partite
-                        elif key2 == ord("s"):
-                            form_win=curses.newwin(22,60,2,2)
-                            form_win.box()
-                            form_win.bkgd(curses.color_pair(4))
-                            form_win.addstr(0,3,"Match Statistic")
-                            dataf=self.events[selected].list_statistic()
-                            tablef=self.tabulate_strings(dataf)
-                            for r,line in enumerate(tablef):
-                                form_win.addstr(r+1,2,line)
-                            form_win.refresh()
+                form_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        form_win.erase()
+                        break
+            #finestra di stampa statistiche partite
+            elif key == ord("s"):
+                form_win=curses.newwin(23,60,2,2)
+                form_win.box()
+                form_win.bkgd(curses.color_pair(4))
+                form_win.addstr(0,3,"Match Statistic")
+                form_win.addstr(22,3,"q to close")
+                dataf=self.events[selected].list_statistic()
+                tablef=self.tabulate_strings(dataf)
+                for r,line in enumerate(tablef):
+                    form_win.addstr(r+1,2,line)
+                form_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        form_win.erase()
+                        #screen.clear()
+                        #screen.refresh()
+                        break
+            #set exit point        
             elif key == ord("q"):
                 curses.endwin()
                 return -1
