@@ -1,5 +1,5 @@
 #Now score version
-version=0.21
+version=0.25
 
 import argparse
 import datetime
@@ -155,11 +155,15 @@ def get_start_11(id):
     thname,taname=tab["response"][0]["team"]["name"],tab["response"][1]["team"]["name"]
     start11home,start11away=[],[]
     for team1 in tab["response"][0]["startXI"]:
-        player=Player(team1["player"]["name"],thname,team1["player"]["number"],team1["player"]["pos"])
+        player=Player(team1["player"]["name"],
+                      thname,team1["player"]["number"],team1["player"]["pos"],
+                      tab["response"][0]["coach"]["name"],tab["response"][0]["formation"])
         start11home.append(player)
     for team2 in tab["response"][1]["startXI"]:
-        player=Player(team2["player"]["name"],taname,team2["player"]["number"],team2["player"]["pos"])
-        start11away.append(player)
+         player=Player(team2["player"]["name"],
+                      taname,team2["player"]["number"],team2["player"]["pos"],
+                      tab["response"][1]["coach"]["name"],tab["response"][1]["formation"])
+         start11away.append(player)
     start11=[start11home,start11away]
     return start11
 
@@ -194,11 +198,13 @@ args = parser.parse_args()
 
 #creiamo una classe per la catalogalizzazione degli incontri 
 class Player:
-    def __init__(self,name,team,number,position) -> None:
+    def __init__(self,name,team,number,position,coach,scheme) -> None:
         self.name=name
         self.team=team
         self.num=number
         self.pos=position
+        self.coach=coach
+        self.scheme=scheme
 
 #classe che cataloga le statistiche dell'incontro stabilite da rapidapi
 #esempio shot on goal, total shot, corner, etc   
@@ -253,19 +259,21 @@ class Match:
         return tabellaeventi
     #metodo che scarica la lista degli 11 di partenza
     def list_start11(self):
-    
         f1,f2=get_start_11(self.idfixture)
-        lista11=[["","",self.teamhome,"","",self.teamaway],
-                 ["--","--","","--","--",""]]
+        lista11=[["","",self.teamhome,self.goalshome,self.goalsaway,self.teamaway],
+                 ["","",f1[0].scheme,"","",f2[0].scheme],
+                 ["N","P","--","--","N","P",""]]
         for i1,i2 in zip(f1,f2):
             lista11.append([i1.num,i1.pos,i1.name,i2.num,i2.pos,i2.name])
+        lista11.append(["--","--","--","--","--","--"])
+        lista11.append(["Coach",":",f1[0].coach,"Coach",":",f2[0].coach])
         return lista11
         
     #metodo che scarica la lista delle statistiche del match
     def list_statistic(self):
         f1,f2=get_statistic(self.idfixture)
-        list_stat=[["Statistic Date","|",self.teamhome,self.teamaway],
-                   ["--","|","--","--"]]
+        list_stat=[["Statistic Date","|",self.teamhome,self.teamaway,":",self.goalshome,self.goalsaway],
+                   ["--","|","--","--","","",""]]
         for i1,i2 in zip(f1,f2):
             list_stat.append([i1.type,"|",i1.value,i2.value])
         return list_stat
@@ -369,7 +377,7 @@ class Winmenu:
                     selected += 1
                     if selected >= scroll_offset + max_items:
                         scroll_offset += 1
-            elif key == ord("\n"):
+            elif (key == ord("\n") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
                 selected_item = options[selected]
                 data=self.events[selected].flow_events()
                 data_win = curses.newwin(len(data)+3,width-5,4,4)
@@ -387,12 +395,12 @@ class Winmenu:
                     if pausekey==ord("q"):
                         data_win.erase()
                         break
-            elif key == ord("f"):
-                form_win=curses.newwin(17,65,2,2)
+            elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
+                form_win=curses.newwin(19,65,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(3))
-                form_win.addstr(0,3,"Star 11 formation")
-                form_win.addstr(16,3,"q to close")
+                form_win.addstr(0,3,"Start 11 Line UP")
+                form_win.addstr(18,3,"q to close")
                 dataf=self.events[selected].list_start11()
                 tablef=self.tabulate_strings(dataf)
                 for r,line in enumerate(tablef):
@@ -405,7 +413,7 @@ class Winmenu:
                         form_win.erase()
                         break
             #finestra di stampa statistiche partite
-            elif key == ord("s"):
+            elif (key == ord("s") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST") ):
                 form_win=curses.newwin(23,60,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(4))
@@ -425,7 +433,11 @@ class Winmenu:
                         break
             #set exit point        
             elif key == ord("q"):
+                menu_win.erase()
+                screen.clear()
+                screen.refresh()
                 curses.endwin()
+                
                 return -1
 
 
@@ -440,11 +452,13 @@ if (args.league!=None) and (args.league.upper() in scl):
             args.standing=0
 
         list_stand,rem=get_standing_season(sc[args.league.upper()],args.standing)
-        classifica=[["POS","TEAM","PO","ROUND","W","D","L","GF","GS"]]
+        classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
         for t in list_stand:
             row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
                 t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
-                t["all"]["goals"]["for"],t["all"]["goals"]["against"]]
+                t["all"]["goals"]["for"],t["all"]["goals"]["against"],
+                t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
+                ' '.join(t["form"]),t["status"]]
             classifica.append(row)
         #stampa la classifica
         print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
