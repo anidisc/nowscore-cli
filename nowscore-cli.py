@@ -264,9 +264,10 @@ class Match:
     #metodo che scarica la lista delle statistiche del match
     def list_statistic(self):
         f1,f2=get_statistic(self.idfixture)
-        list_stat=[[f1[0].teamName,"",f2[0].teamName],["--","","--"]]
+        list_stat=[["Statistic Date","|",self.teamhome,self.teamaway],
+                   ["--","|","--","--"]]
         for i1,i2 in zip(f1,f2):
-            list_stat.append([i1.value,i2.type,i2.value])
+            list_stat.append([i1.type,"|",i1.value,i2.value])
         return list_stat
 
 
