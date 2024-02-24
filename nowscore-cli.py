@@ -1,5 +1,5 @@
 #Now score version
-version=0.21
+version=0.25
 
 import argparse
 import datetime
@@ -369,7 +369,7 @@ class Winmenu:
                     selected += 1
                     if selected >= scroll_offset + max_items:
                         scroll_offset += 1
-            elif key == ord("\n"):
+            elif (key == ord("\n") and (self.events[selected].status != "NS")):
                 selected_item = options[selected]
                 data=self.events[selected].flow_events()
                 data_win = curses.newwin(len(data)+3,width-5,4,4)
@@ -387,7 +387,7 @@ class Winmenu:
                     if pausekey==ord("q"):
                         data_win.erase()
                         break
-            elif key == ord("f"):
+            elif (key == ord("f")and(self.events[selected].status != "NS")):
                 form_win=curses.newwin(17,65,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(3))
@@ -405,7 +405,7 @@ class Winmenu:
                         form_win.erase()
                         break
             #finestra di stampa statistiche partite
-            elif key == ord("s"):
+            elif (key == ord("s") and (self.events[selected].status != "NS")):
                 form_win=curses.newwin(23,60,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(4))
