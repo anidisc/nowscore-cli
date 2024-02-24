@@ -1,5 +1,5 @@
 #Now score version
-version=0.185
+version=0.21
 
 import argparse
 import datetime
@@ -10,6 +10,8 @@ from datetime import datetime as dateT
 from tabulate import tabulate
 import tabulate as tabulate2
 
+#init curse to blessed way 
+#import blessed 
 
 # Crea un oggetto parser
 parser = argparse.ArgumentParser(description="NOWScore Soccer Events CLI")
@@ -40,7 +42,8 @@ sc={"SA":135,
     "PPL":94,
     "UCL":2,
     "UEL":3,
-    "SB":136}
+    "SB":136,
+    "JUP":144}
 
 scext={"SA":"Italy Serie A",
        "PL":"England Premier League",
@@ -52,7 +55,8 @@ scext={"SA":"Italy Serie A",
        "PPL":"Portugal Primeira Liga",
        "UCL":"UEFA Champions League Cup",
        "UEL":"UEFA Europa League Cup",
-       "SB":"Italy Serie B",}
+       "SB":"Italy Serie B",
+       "JUP":"Belgium Jupyter League"}
 
 scl=list(sc.keys()) #convertiamo il dizionario in lista in modo da poter meglio gestire
 sclv=list(scext.values())
@@ -69,8 +73,9 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
                                               - {sclv[6]}={scl[6]}
                                               - {sclv[7]}={scl[7]}
                                               - {sclv[8]}={scl[8]}
-                                              - {sclv[9]}={scl[9]},
-                                                {sclv[10]}={scl[10]}""", default=None)
+                                              - {sclv[9]}={scl[9]}
+                                              - {sclv[10]}={scl[10]}
+                                              - {sclv[11]}={scl[11]}""", default=None)
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
                                                 if you want show stand of tournament group Uefa
@@ -110,8 +115,12 @@ def get_match_list(idleague,datestart=datetime.date.today(),datestop=datetime.da
     }
 
     t=requests.request("GET", url, headers=headers, params=querystring)
+
+    remaining_calls = t.headers.get("X-RateLimit-Requests-Remaining")
+    reset_time = t.headers.get("X-RateLimit-Reset")
+
     tab=json.loads(t.text)
-    return tab["response"]
+    return tab["response"],remaining_calls
 
 def get_standing_season(id,gruop=0):
     url = "https://api-football-v1.p.rapidapi.com/v3/standings"
@@ -125,8 +134,12 @@ def get_standing_season(id,gruop=0):
     }
 
     response = requests.request("GET", url, headers=headers, params=querystring)
+
+    remaining_calls = response.headers.get("X-RateLimit-Requests-Remaining")
+    reset_time = response.headers.get("X-RateLimit-Reset")
+
     tab=json.loads(response.text)
-    return tab["response"][0]["league"]["standings"][gruop]
+    return tab["response"][0]["league"]["standings"][gruop],remaining_calls
 
 def get_start_11(id):
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures/lineups"
@@ -137,7 +150,7 @@ def get_start_11(id):
         "X-RapidAPI-Key": apikey,
         "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
     }
-    response = requests.get(url, headers=headers, params=querystring)
+    response = requests.get(url, headers=headers, params=querystring)  
     tab=json.loads(response.text)
     thname,taname=tab["response"][0]["team"]["name"],tab["response"][1]["team"]["name"]
     start11home,start11away=[],[]
@@ -150,6 +163,31 @@ def get_start_11(id):
     start11=[start11home,start11away]
     return start11
 
+def get_statistic(id):
+
+    url = "https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics"
+
+    querystring = {"fixture":id}
+
+    headers = {
+        "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+        "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+    }
+
+    response = requests.get(url, headers=headers, params=querystring)
+    tab=json.loads(response.text)
+    teamh=tab["response"][0]["team"]["name"]
+    teama=tab["response"][1]["team"]["name"]
+    stathome,stataway=[],[]
+    for team1 in tab["response"][0]["statistics"]:
+        s=TeamStat(teamh,team1["type"],team1["value"])
+        stathome.append(s)
+    for team2 in tab["response"][1]["statistics"]:
+        s=TeamStat(teama,team2["type"],team2["value"])
+        stataway.append(s)
+    return [stathome,stataway]
+
+
 
 # Leggi gli argomenti dalla riga di comando
 args = parser.parse_args()
@@ -161,7 +199,14 @@ class Player:
         self.team=team
         self.num=number
         self.pos=position
-    
+
+#classe che cataloga le statistiche dell'incontro stabilite da rapidapi
+#esempio shot on goal, total shot, corner, etc   
+class TeamStat:
+    def __init__(self,teamName,type,value):
+        self.teamName=teamName
+        self.type=type
+        self.value=value
 
 class Match:
     def __init__(self,idmatch,thome,taway,ghome,gaway,status,min,datematch,referee,stadium,city):
@@ -208,14 +253,23 @@ class Match:
         return tabellaeventi
     #metodo che scarica la lista degli 11 di partenza
     def list_start11(self):
+    
         f1,f2=get_start_11(self.idfixture)
         lista11=[["","",self.teamhome,"","",self.teamaway],
                  ["--","--","","--","--",""]]
         for i1,i2 in zip(f1,f2):
             lista11.append([i1.num,i1.pos,i1.name,i2.num,i2.pos,i2.name])
         return lista11
-    
         
+    #metodo che scarica la lista delle statistiche del match
+    def list_statistic(self):
+        f1,f2=get_statistic(self.idfixture)
+        list_stat=[["Statistic Date","|",self.teamhome,self.teamaway],
+                   ["--","|","--","--"]]
+        for i1,i2 in zip(f1,f2):
+            list_stat.append([i1.type,"|",i1.value,i2.value])
+        return list_stat
+
 
 class Winmenu:
     def __init__(self,events:list,title="select options"):
@@ -226,7 +280,7 @@ class Winmenu:
     def formatta_liste(self):
         liste=[]
         for event in self.events:
-            liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,"~",
+            liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
                        event.status,event.minutes," - ",event.date])
         # Crea una lista vuota per memorizzare le liste formattate
         liste_formattate = []
@@ -270,15 +324,14 @@ class Winmenu:
         curses.start_color()
         curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
-        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_GREEN)
+        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
+        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+2)<height else height-2
         setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2 
 
-        menu_win = curses.newwin(seth, setw, 1, 5)
-        menu_win.box()
-        menu_win.addstr(0, 5, self.title)
+        
 
         menu_items = len(options)
         max_items = height - 4
@@ -289,6 +342,11 @@ class Winmenu:
             scroll_offset = 0
             selected = -1
         while True:
+            screen.clear()
+            menu_win = curses.newwin(seth, setw, 1, 5)
+            menu_win.box()
+            menu_win.addstr(0, 5, self.title)
+            menu_win.addstr(seth-1,3,"['q' exit 'f' 11-lineups 's' match-Stats 'ENTER' data]")
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
@@ -312,48 +370,60 @@ class Winmenu:
                     if selected >= scroll_offset + max_items:
                         scroll_offset += 1
             elif key == ord("\n"):
-                if selected != -1:
-                    curses.endwin()
-                    selected_item = options[selected]
-                    data=self.events[selected].flow_events()
-                    data_win = curses.newwin(len(data)+3,width-5,4,4)
-                    data_win.box()
-                    data_win.addstr(0, 5, selected_item)
-                    data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
-                    data_win.addstr(len(data)+2,5,"press 'q' to exit 'f' show formations or 'ENTER' to close")
-                    table=self.tabulate_strings(data)
-                    #table = tabulate(data, tablefmt='presto')
-                    # table_lines = table.split('\n')
-                    # table_centered = [line.center(data_win.getmaxyx()[1]) for line in table_lines]
-                    # table_str = '\n'.join(table_centered)
-                    for r,line in enumerate(table):
-                        data_win.addstr(r+1,2,line)
-                    #data_win.addstr(3, 3, table)
-                    data_win.refresh()
+                selected_item = options[selected]
+                data=self.events[selected].flow_events()
+                data_win = curses.newwin(len(data)+3,width-5,4,4)
+                data_win.box()
+                data_win.addstr(0, 5, selected_item)
+                data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
+                data_win.addstr(len(data)+2,5,"'q' to close")
+                table=self.tabulate_strings(data)
+                for r,line in enumerate(table):
+                    data_win.addstr(r+1,2,line)
+                #data_win.addstr(3, 3, table)
+                data_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        data_win.erase()
+                        break
+            elif key == ord("f"):
+                form_win=curses.newwin(17,65,2,2)
+                form_win.box()
+                form_win.bkgd(curses.color_pair(3))
+                form_win.addstr(0,3,"Star 11 formation")
+                form_win.addstr(16,3,"q to close")
+                dataf=self.events[selected].list_start11()
+                tablef=self.tabulate_strings(dataf)
+                for r,line in enumerate(tablef):
+                    form_win.addstr(r+1,2,line)
 
-                    #data_win.addstr(3,3,data)
-                    #data_win.refresh()
-                    while True:
-                        key2 = screen.getch()
-                        if key2 == ord("\n"):
-                            data_win.erase()
-                            data_win.refresh()
-                            menu_win.refresh()
-                            break
-                        elif key2 == ord("q"):
-                            curses.endwin()
-                            return -1
-                        elif key2 == ord("f"):
-                            form_win=curses.newwin(17,65,2,2)
-                            form_win.box()
-                            form_win.bkgd(curses.color_pair(3))
-                            form_win.addstr(0,3,"Star 11 formation")
-                            dataf=self.events[selected].list_start11()
-                            tablef=self.tabulate_strings(dataf)
-                            for r,line in enumerate(tablef):
-                                form_win.addstr(r+1,2,line)
-
-                            form_win.refresh()
+                form_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        form_win.erase()
+                        break
+            #finestra di stampa statistiche partite
+            elif key == ord("s"):
+                form_win=curses.newwin(23,60,2,2)
+                form_win.box()
+                form_win.bkgd(curses.color_pair(4))
+                form_win.addstr(0,3,"Match Statistic")
+                form_win.addstr(22,3,"q to close")
+                dataf=self.events[selected].list_statistic()
+                tablef=self.tabulate_strings(dataf)
+                for r,line in enumerate(tablef):
+                    form_win.addstr(r+1,2,line)
+                form_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        form_win.erase()
+                        #screen.clear()
+                        #screen.refresh()
+                        break
+            #set exit point        
             elif key == ord("q"):
                 curses.endwin()
                 return -1
@@ -369,7 +439,7 @@ if (args.league!=None) and (args.league.upper() in scl):
         if args.standing is None :
             args.standing=0
 
-        list_stand=get_standing_season(sc[args.league.upper()],args.standing)
+        list_stand,rem=get_standing_season(sc[args.league.upper()],args.standing)
         classifica=[["POS","TEAM","PO","ROUND","W","D","L","GF","GS"]]
         for t in list_stand:
             row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
@@ -377,7 +447,7 @@ if (args.league!=None) and (args.league.upper() in scl):
                 t["all"]["goals"]["for"],t["all"]["goals"]["against"]]
             classifica.append(row)
         #stampa la classifica
-        print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+"\n"
+        print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
               +tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
               +"\n")
         exit()
@@ -389,7 +459,7 @@ if (args.league!=None) and (args.league.upper() in scl):
         else:
             tdeltafrom=datetime.date.today()+datetime.timedelta(tdelta)
             tdeltato=datetime.date.today()
-        p=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
+        p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
         ev=[]
         for m in p:
             #carichiamo i dati del matrch nella classe
@@ -399,12 +469,13 @@ if (args.league!=None) and (args.league.upper() in scl):
                         m["fixture"]["referee"],m["fixture"]["venue"]["name"],
                         m["fixture"]["venue"]["city"]))
         try:
-            selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato}").menu()
+            selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
             if selection!=-1:
                 #carichiamo gli eventi
                 pass
             else: 
                 #print(ev[1].flow_events())
+                print(f"NOWScore {version} richiesta di uscita dal programma!")
                 exit()
         except ValueError as error:
             print(f"errore {error}")
