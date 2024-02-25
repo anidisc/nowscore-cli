@@ -408,36 +408,47 @@ class Winmenu:
                     selected += 1
                     if selected >= scroll_offset + max_items:
                         scroll_offset += 1
+            #selezione data match
             elif (key == ord("\n") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
                 selected_item = options[selected]
                 data=self.events[selected].flow_events()
                 data_win = curses.newwin(len(data)+3,width-5,4,4)
                 data_win.box()
-                data_win.addstr(0, 5, selected_item)
                 data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
-                data_win.addstr(len(data)+2,5,"'q' to close")
+                header_win.clear()
+                header_win.addstr(0,5,selected_item)
+                footer_win.clear()
+                footer_win.addstr(0,5,"PRESS 'q' to close")
                 table=self.tabulate_strings(data)
                 for r,line in enumerate(table):
                     data_win.addstr(r+1,2,line)
-                #data_win.addstr(3, 3, table)
                 data_win.refresh()
+                header_win.refresh()
+                footer_win.refresh()
                 while True:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         data_win.erase()
                         break
+            #selezione start 11 line up
             elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
-                form_win=curses.newwin(19,65,2,2)
+                form_win=curses.newwin(20,65,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(3))
-                form_win.addstr(0,3,"Start 11 Line UP")
-                form_win.addstr(18,3,"q to close")
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(3))
+                header_win.addstr(0,3,f"{self.events[selected].teamhome} VS {self.events[selected].teamaway} Start 11 Line UP")
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(3))
+                footer_win.addstr(0,3,"PRESS: 'q' to close")
                 dataf=self.events[selected].list_start11()
                 tablef=self.tabulate_strings(dataf)
                 for r,line in enumerate(tablef):
                     form_win.addstr(r+1,2,line)
 
                 form_win.refresh()
+                header_win.refresh()
+                footer_win.refresh()
                 while True:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
@@ -448,13 +459,19 @@ class Winmenu:
                 form_win=curses.newwin(23,60,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(4))
-                form_win.addstr(0,3,"Match Statistic")
-                form_win.addstr(22,3,"q to close")
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(4))
+                header_win.addstr(0,3,f"Match Statistic between {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(4))
+                footer_win.addstr(0,3,"PRESS 'q' to close")
                 dataf=self.events[selected].list_statistic()
                 tablef=self.tabulate_strings(dataf)
                 for r,line in enumerate(tablef):
                     form_win.addstr(r+1,2,line)
                 form_win.refresh()
+                header_win.refresh()
+                footer_win.refresh()
                 while True:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
