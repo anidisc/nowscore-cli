@@ -1,5 +1,5 @@
 #Now score version
-version=0.25
+version=0.30
 
 import argparse
 import datetime
@@ -10,8 +10,8 @@ from datetime import datetime as dateT
 from tabulate import tabulate
 import tabulate as tabulate2
 
-#init curse to blessed way 
-#import blessed 
+#init curse to blessed way
+#import blessed
 
 # Crea un oggetto parser
 parser = argparse.ArgumentParser(description="NOWScore Soccer Events CLI")
@@ -79,7 +79,7 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
                                                 if you want show stand of tournament group Uefa
-                                                select index of the group.\n 
+                                                select index of the group.\n
                                                 Example: GROUP A=0 GROUP B=1 ....\n""",type=int, choices=range(8), default=-1, nargs="?")
 parser.add_argument("-t", "--time_delta", help="""set time from-to show fixtures by day\n
                                                   example: t=-3 set start date to 3 day ago\n
@@ -150,7 +150,7 @@ def get_start_11(id):
         "X-RapidAPI-Key": apikey,
         "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
     }
-    response = requests.get(url, headers=headers, params=querystring)  
+    response = requests.get(url, headers=headers, params=querystring)
     tab=json.loads(response.text)
     thname,taname=tab["response"][0]["team"]["name"],tab["response"][1]["team"]["name"]
     start11home,start11away=[],[]
@@ -191,12 +191,33 @@ def get_statistic(id):
         stataway.append(s)
     return [stathome,stataway]
 
+class Prediction():
+    def __init__(self,idmatch) -> None:
+        self.idmatch=idmatch
+        url = "https://api-football-v1.p.rapidapi.com/v3/predictions"
+        querystring = {"fixture":self.idmatch}
+
+        headers = {
+            "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+            "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+        }
+        response = requests.get(url, headers=headers, params=querystring)
+        tab=json.loads(response.text)["response"][0]
+        self.teamhome=tab["teams"]["home"]["name"]
+        self.teamaway=tab["teams"]["away"]["name"]
+        self.predictionadv=tab["predictions"]["goals"]["advice"]
+        self.predictionstat={"home":tab["predictions"]["percent"]["home"],
+                             "draw":tab["predictions"]["percent"]["draw"],
+                             "away":tab["predictions"]["percent"]["away"]}
+        self.comparison={"home":tab["comparison"]["form"]["home"],
+                         "away":tab["comparison"]["form"]["away"]}
+
 
 
 # Leggi gli argomenti dalla riga di comando
 args = parser.parse_args()
 
-#creiamo una classe per la catalogalizzazione degli incontri 
+#creiamo una classe per la catalogalizzazione degli incontri
 class Player:
     def __init__(self,name,team,number,position,coach,scheme) -> None:
         self.name=name
@@ -207,7 +228,7 @@ class Player:
         self.scheme=scheme
 
 #classe che cataloga le statistiche dell'incontro stabilite da rapidapi
-#esempio shot on goal, total shot, corner, etc   
+#esempio shot on goal, total shot, corner, etc
 class TeamStat:
     def __init__(self,teamName,type,value):
         self.teamName=teamName
@@ -232,18 +253,18 @@ class Match:
         self.awaystat=None
 
     #metodo che scarica gli eventi del match.
-    def flow_events(self): 
+    def flow_events(self):
         list_event=get_events_match(self.idfixture)
         tabellaeventi=[[self.teamhome,"",self.goalshome,"vs",self.goalsaway,"",self.teamaway]]
         for e in list_event:
             match e["type"]:
-                case "Goal": 
+                case "Goal":
                     e["detail"]="GOAL" if e["detail"]=="Normal Goal" else "Penalty/GOAL"
             #aggiungi il tempo di recupero
             extratime=e["time"]["extra"] if e["time"]["extra"]!=None else 0
-            
-            if e["assist"]["name"]!=None: 
-                dbrow=str(e["player"]["name"])+"/"+str(e["assist"]["name"]) 
+
+            if e["assist"]["name"]!=None:
+                dbrow=str(e["player"]["name"])+"/"+str(e["assist"]["name"])
             else:
                 dbrow=e["player"]["name"]
             if e["team"]["name"]==self.teamhome:
@@ -268,7 +289,7 @@ class Match:
         lista11.append(["--","--","--","--","--","--"])
         lista11.append(["Coach",":",f1[0].coach,"Coach",":",f2[0].coach])
         return lista11
-        
+
     #metodo che scarica la lista delle statistiche del match
     def list_statistic(self):
         f1,f2=get_statistic(self.idfixture)
@@ -322,7 +343,7 @@ class Winmenu:
         table_lines_padded = [line.ljust(max_length) for line in table_lines]
 
         return table_lines_padded
-    
+
     def menu(self):
         options=self.formatta_liste()
         screen=curses.initscr()
@@ -337,9 +358,9 @@ class Winmenu:
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+2)<height else height-2
-        setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2 
+        setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2
 
-        
+
 
         menu_items = len(options)
         max_items = height - 4
@@ -351,10 +372,18 @@ class Winmenu:
             selected = -1
         while True:
             screen.clear()
+            #header striscia titolo eventi scelti
+            header_win = curses.newwin(1,width,0,0)
+            header_win.bkgd(curses.color_pair(2))
+            header_win.addstr(0,5,self.title)
+            #main box menu
             menu_win = curses.newwin(seth, setw, 1, 5)
             menu_win.box()
-            menu_win.addstr(0, 5, self.title)
-            menu_win.addstr(seth-1,3,"['q' exit 'f' 11-lineups 's' match-Stats 'ENTER' data]")
+            #footer stricia messaggi di aiuto
+            footer_win=curses.newwin(1,width,height-1,0)
+            footer_win.bkgd(curses.color_pair(2))
+            footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - 's' match-Stats - 'ENTER' data - 'p' Predictions Match")
+
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
@@ -364,6 +393,8 @@ class Winmenu:
 
             screen.refresh()
             menu_win.refresh()
+            header_win.refresh()
+            footer_win.refresh()
 
             key = screen.getch()
 
@@ -431,20 +462,22 @@ class Winmenu:
                         #screen.clear()
                         #screen.refresh()
                         break
-            #set exit point        
+            elif (key == ord("p")):
+                pass
+            #set exit point
             elif key == ord("q"):
                 menu_win.erase()
                 screen.clear()
                 screen.refresh()
                 curses.endwin()
-                
+
                 return -1
 
 
 if args.version:
     print(f"NowScore - version {version}")
     exit() #chiusura del programma dopo la visualizzazione della versione
-    
+
 
 if (args.league!=None) and (args.league.upper() in scl):
     if args.standing !=-1 :
@@ -467,7 +500,7 @@ if (args.league!=None) and (args.league.upper() in scl):
         exit()
     else:
         tdelta=int(args.time_delta)
-        if tdelta>=0: 
+        if tdelta>=0:
             tdeltafrom=datetime.date.today()
             tdeltato=datetime.date.today()+datetime.timedelta(tdelta)
         else:
@@ -487,7 +520,7 @@ if (args.league!=None) and (args.league.upper() in scl):
             if selection!=-1:
                 #carichiamo gli eventi
                 pass
-            else: 
+            else:
                 #print(ev[1].flow_events())
                 print(f"NOWScore {version} richiesta di uscita dal programma!")
                 exit()
