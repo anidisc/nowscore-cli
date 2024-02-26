@@ -100,7 +100,7 @@ def get_events_match(id):
     tab=json.loads(response.text)
     return tab["response"]
 
-#scarica dalla api la lista delle partite nell''intervallo di tempo fissato dagli argomenti
+#scarica dalla api la lista delle partite nell'intervallo di tempo fissato dagli argomenti
 def get_match_list(idleague,datestart=datetime.date.today(),datestop=datetime.date.today()):
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
 
@@ -121,7 +121,7 @@ def get_match_list(idleague,datestart=datetime.date.today(),datestop=datetime.da
 
     tab=json.loads(t.text)
     return tab["response"],remaining_calls
-
+#scarica la classifica della lega ID e eventuale gruppo se multi girone
 def get_standing_season(id,gruop=0):
     url = "https://api-football-v1.p.rapidapi.com/v3/standings"
 
@@ -140,7 +140,7 @@ def get_standing_season(id,gruop=0):
 
     tab=json.loads(response.text)
     return tab["response"][0]["league"]["standings"][gruop],remaining_calls
-
+#scarica la lista degli 11 iniziali di line-up
 def get_start_11(id):
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures/lineups"
 
@@ -166,7 +166,7 @@ def get_start_11(id):
          start11away.append(player)
     start11=[start11home,start11away]
     return start11
-
+#richiede la statistiche dell'evento ID in corso o terminato
 def get_statistic(id):
 
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics"
@@ -190,7 +190,7 @@ def get_statistic(id):
         s=TeamStat(teama,team2["type"],team2["value"])
         stataway.append(s)
     return [stathome,stataway]
-
+#richiede all'avvio le prediction e le analisi comparative dell'evento ID
 class Prediction():
     def __init__(self,idmatch) -> None:
         self.idmatch=idmatch
@@ -205,7 +205,7 @@ class Prediction():
         tab=json.loads(response.text)["response"][0]
         self.teamhome=tab["teams"]["home"]["name"]
         self.teamaway=tab["teams"]["away"]["name"]
-        self.predictionadv=tab["predictions"]["goals"]["advice"]
+        self.predictionadv=tab["predictions"]["advice"]
         self.predictionstat={"home":tab["predictions"]["percent"]["home"],
                              "draw":tab["predictions"]["percent"]["draw"],
                              "away":tab["predictions"]["percent"]["away"]}
@@ -355,6 +355,7 @@ class Winmenu:
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
         curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
+        curses.init_pair(5, curses.COLOR_WHITE, curses.COLOR_GREEN)
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+2)<height else height-2
@@ -479,11 +480,39 @@ class Winmenu:
                         #screen.clear()
                         #screen.refresh()
                         break
-            elif (key == ord("p")):
-                pass
+            #richiesta previsioni betting e confronto
+            elif (key == ord("p") and (self.events[selected].status != "FT")):
+                pred=Prediction(self.events[selected].idfixture)
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(5))
+                header_win.addstr(0,3,f"prediction STAT: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(5))
+                footer_win.addstr(0,3,"PRESS 'q' to close")
+                pred_win=curses.newwin(10,70,2,2)
+                pred_win.box()
+                pred_win.bkgd(curses.color_pair(5))
+                pred_win.addstr(1,4,f"Bet Tip -> {pred.predictionadv}")
+                pred_win.addstr(3,4,"Status Form")
+                pred_win.addstr(5,6,f"{pred.comparison['home']} : {pred.teamhome}")
+                pred_win.addstr(6,6,f"{pred.comparison['away']} : {pred.teamaway}")
+                pred_win.refresh()
+                header_win.refresh()
+                footer_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        pred_win.erase()
+                        #screen.clear()
+                        #screen.refresh()
+                        break       
+                            
+
             #set exit point
             elif key == ord("q"):
                 menu_win.erase()
+                header_win.erase()
+                footer_win.erase()
                 screen.clear()
                 screen.refresh()
                 curses.endwin()

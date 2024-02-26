@@ -19,3 +19,4 @@ term.draw_svg(svg)
 
 # Mostra il terminale
 term.show()
+#print a number  
