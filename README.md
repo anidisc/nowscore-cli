@@ -6,6 +6,8 @@ This is a command line interface (CLI) application for accessing and viewing foo
 
 ![](Screenshot%202024-02-28%20022840.png)
 
+<img title="" src="Screenshot%202024-02-28%20025029.png" alt="" width="659">
+
 ## Installation
 
 To use this CLI application, you will need to obtain a Rapid Api key and install it in a file named `rapidkey1.key`. Insert the token on the first line of the file.
