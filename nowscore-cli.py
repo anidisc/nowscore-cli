@@ -363,13 +363,13 @@ class Winmenu:
 
 
         height, width = screen.getmaxyx()
-        seth=len(options)+2 if (len(options)+2)<height else height-2
+        seth=len(options)+2 if (len(options)+3)<height else height-3
         setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2
 
 
 
         menu_items = len(options)
-        max_items = height - 4
+        max_items = height - 5
         if menu_items > max_items:
             scroll_offset = 0
             selected = 0
