@@ -1,5 +1,5 @@
 #Now score version
-version=0.30
+version=0.35
 
 import argparse
 import datetime

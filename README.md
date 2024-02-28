@@ -4,6 +4,8 @@
 
 This is a command line interface (CLI) application for accessing and viewing football match results in the major European and international leagues. The application requires a Rapid Api key to be installed in a file named `rapidkey1.key` in order to access the service.
 
+![](C:\Users\nello\Pictures\Screenshots\Screenshot%202024-02-28%20022840.png)
+
 ## Installation
 
 To use this CLI application, you will need to obtain a Rapid Api key and install it in a file named `rapidkey1.key`. Insert the token on the first line of the file.
@@ -72,8 +74,6 @@ You can use the following league codes to access information for the desired foo
 Use these codes to view results, standings, and fixtures for your desired football leagues.
 
 We hope this table helps you effectively utilize the application!
-
-
 
 # Obtain a RapidAPI Key for the Footbal API
 
