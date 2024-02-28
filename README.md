@@ -4,7 +4,7 @@
 
 This is a command line interface (CLI) application for accessing and viewing football match results in the major European and international leagues. The application requires a Rapid Api key to be installed in a file named `rapidkey1.key` in order to access the service.
 
-![](C:\Users\nello\Pictures\Screenshots\Screenshot%202024-02-28%20022840.png)
+![](Screenshot%202024-02-28%20022840.png)
 
 ## Installation
 
