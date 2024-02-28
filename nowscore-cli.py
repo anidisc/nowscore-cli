@@ -377,7 +377,7 @@ class Winmenu:
             scroll_offset = 0
             selected = -1
         while True:
-            screen.clear()
+            #screen.clear()
             #header striscia titolo eventi scelti
             header_win = curses.newwin(1,width,0,0)
             header_win.bkgd(curses.color_pair(2))
@@ -440,6 +440,7 @@ class Winmenu:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         data_win.erase()
+                        screen.clear()
                         break
             #selezione start 11 line up
             elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
@@ -464,6 +465,7 @@ class Winmenu:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         form_win.erase()
+                        screen.clear()
                         break
             #finestra di stampa statistiche partite
             elif (key == ord("s") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST") ):
@@ -487,7 +489,7 @@ class Winmenu:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         form_win.erase()
-                        #screen.clear()
+                        screen.clear()
                         #screen.refresh()
                         break
             #richiesta previsioni betting e confronto
@@ -513,7 +515,7 @@ class Winmenu:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         pred_win.erase()
-                        #screen.clear()
+                        screen.clear()
                         #screen.refresh()
                         break       
                             
