@@ -1,5 +1,5 @@
 #Now score version
-version=0.25
+version=0.35
 
 import argparse
 import datetime
@@ -10,8 +10,8 @@ from datetime import datetime as dateT
 from tabulate import tabulate
 import tabulate as tabulate2
 
-#init curse to blessed way 
-#import blessed 
+#init curse to blessed way
+#import blessed
 
 # Crea un oggetto parser
 parser = argparse.ArgumentParser(description="NOWScore Soccer Events CLI")
@@ -79,7 +79,7 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
                                                 if you want show stand of tournament group Uefa
-                                                select index of the group.\n 
+                                                select index of the group.\n
                                                 Example: GROUP A=0 GROUP B=1 ....\n""",type=int, choices=range(8), default=-1, nargs="?")
 parser.add_argument("-t", "--time_delta", help="""set time from-to show fixtures by day\n
                                                   example: t=-3 set start date to 3 day ago\n
@@ -100,7 +100,7 @@ def get_events_match(id):
     tab=json.loads(response.text)
     return tab["response"]
 
-#scarica dalla api la lista delle partite nell''intervallo di tempo fissato dagli argomenti
+#scarica dalla api la lista delle partite nell'intervallo di tempo fissato dagli argomenti
 def get_match_list(idleague,datestart=datetime.date.today(),datestop=datetime.date.today()):
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
 
@@ -121,7 +121,7 @@ def get_match_list(idleague,datestart=datetime.date.today(),datestop=datetime.da
 
     tab=json.loads(t.text)
     return tab["response"],remaining_calls
-
+#scarica la classifica della lega ID e eventuale gruppo se multi girone
 def get_standing_season(id,gruop=0):
     url = "https://api-football-v1.p.rapidapi.com/v3/standings"
 
@@ -140,7 +140,7 @@ def get_standing_season(id,gruop=0):
 
     tab=json.loads(response.text)
     return tab["response"][0]["league"]["standings"][gruop],remaining_calls
-
+#scarica la lista degli 11 iniziali di line-up
 def get_start_11(id):
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures/lineups"
 
@@ -150,7 +150,7 @@ def get_start_11(id):
         "X-RapidAPI-Key": apikey,
         "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
     }
-    response = requests.get(url, headers=headers, params=querystring)  
+    response = requests.get(url, headers=headers, params=querystring)
     tab=json.loads(response.text)
     thname,taname=tab["response"][0]["team"]["name"],tab["response"][1]["team"]["name"]
     start11home,start11away=[],[]
@@ -166,7 +166,7 @@ def get_start_11(id):
          start11away.append(player)
     start11=[start11home,start11away]
     return start11
-
+#richiede la statistiche dell'evento ID in corso o terminato
 def get_statistic(id):
 
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics"
@@ -190,13 +190,34 @@ def get_statistic(id):
         s=TeamStat(teama,team2["type"],team2["value"])
         stataway.append(s)
     return [stathome,stataway]
+#richiede all'avvio le prediction e le analisi comparative dell'evento ID
+class Prediction():
+    def __init__(self,idmatch) -> None:
+        self.idmatch=idmatch
+        url = "https://api-football-v1.p.rapidapi.com/v3/predictions"
+        querystring = {"fixture":self.idmatch}
+
+        headers = {
+            "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+            "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+        }
+        response = requests.get(url, headers=headers, params=querystring)
+        tab=json.loads(response.text)["response"][0]
+        self.teamhome=tab["teams"]["home"]["name"]
+        self.teamaway=tab["teams"]["away"]["name"]
+        self.predictionadv=tab["predictions"]["advice"]
+        self.predictionstat={"home":tab["predictions"]["percent"]["home"],
+                             "draw":tab["predictions"]["percent"]["draw"],
+                             "away":tab["predictions"]["percent"]["away"]}
+        self.comparison={"home":tab["comparison"]["form"]["home"],
+                         "away":tab["comparison"]["form"]["away"]}
 
 
 
 # Leggi gli argomenti dalla riga di comando
 args = parser.parse_args()
 
-#creiamo una classe per la catalogalizzazione degli incontri 
+#creiamo una classe per la catalogalizzazione degli incontri
 class Player:
     def __init__(self,name,team,number,position,coach,scheme) -> None:
         self.name=name
@@ -207,7 +228,7 @@ class Player:
         self.scheme=scheme
 
 #classe che cataloga le statistiche dell'incontro stabilite da rapidapi
-#esempio shot on goal, total shot, corner, etc   
+#esempio shot on goal, total shot, corner, etc
 class TeamStat:
     def __init__(self,teamName,type,value):
         self.teamName=teamName
@@ -223,27 +244,29 @@ class Match:
         self.goalsaway=str(gaway) if gaway!=None else "-"
         self.status=status
         self.minutes=str(min) if min!=None else "--"
+        #self.extratime=extratime if extratime!=None else 0
         self.date=dateT.fromisoformat(datematch).strftime("%H:%M %d/%m/%Y")
         self.referee=referee
         self.stadium=stadium
         self.location=city
+
         #proprietá globali di statisthe eventi
         self.homestat=None
         self.awaystat=None
 
     #metodo che scarica gli eventi del match.
-    def flow_events(self): 
+    def flow_events(self):
         list_event=get_events_match(self.idfixture)
         tabellaeventi=[[self.teamhome,"",self.goalshome,"vs",self.goalsaway,"",self.teamaway]]
         for e in list_event:
             match e["type"]:
-                case "Goal": 
+                case "Goal":
                     e["detail"]="GOAL" if e["detail"]=="Normal Goal" else "Penalty/GOAL"
             #aggiungi il tempo di recupero
             extratime=e["time"]["extra"] if e["time"]["extra"]!=None else 0
-            
-            if e["assist"]["name"]!=None: 
-                dbrow=str(e["player"]["name"])+"/"+str(e["assist"]["name"]) 
+
+            if e["assist"]["name"]!=None:
+                dbrow=str(e["player"]["name"])+"/"+str(e["assist"]["name"])
             else:
                 dbrow=e["player"]["name"]
             if e["team"]["name"]==self.teamhome:
@@ -268,7 +291,7 @@ class Match:
         lista11.append(["--","--","--","--","--","--"])
         lista11.append(["Coach",":",f1[0].coach,"Coach",":",f2[0].coach])
         return lista11
-        
+
     #metodo che scarica la lista delle statistiche del match
     def list_statistic(self):
         f1,f2=get_statistic(self.idfixture)
@@ -322,8 +345,9 @@ class Winmenu:
         table_lines_padded = [line.ljust(max_length) for line in table_lines]
 
         return table_lines_padded
-    
+
     def menu(self):
+                
         options=self.formatta_liste()
         screen=curses.initscr()
         curses.curs_set(0)
@@ -334,15 +358,18 @@ class Winmenu:
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
         curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
+        curses.init_pair(5, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+
 
         height, width = screen.getmaxyx()
-        seth=len(options)+2 if (len(options)+2)<height else height-2
-        setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2 
+        seth=len(options)+2 if (len(options)+3)<height else height-3
+        setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2
 
-        
+
 
         menu_items = len(options)
-        max_items = height - 4
+        max_items = height - 5
         if menu_items > max_items:
             scroll_offset = 0
             selected = 0
@@ -350,20 +377,35 @@ class Winmenu:
             scroll_offset = 0
             selected = -1
         while True:
-            screen.clear()
+            #screen.clear()
+            #header striscia titolo eventi scelti
+            header_win = curses.newwin(1,width,0,0)
+            header_win.bkgd(curses.color_pair(2))
+            header_win.addstr(0,5, self.title)
+            #main box menu
             menu_win = curses.newwin(seth, setw, 1, 5)
             menu_win.box()
-            menu_win.addstr(0, 5, self.title)
-            menu_win.addstr(seth-1,3,"['q' exit 'f' 11-lineups 's' match-Stats 'ENTER' data]")
+            #footer stricia messaggi di aiuto
+            footer_win=curses.newwin(1,width,height-1,0)
+            footer_win.bkgd(curses.color_pair(2))
+            footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - 's' match-Stats - 'ENTER' data - 'p' Predictions Match")
+
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
                 else:
                     menu_win.attroff(curses.color_pair(1))
                 menu_win.addstr(1 + i, 2, option)
+            
+            info_win=curses.newwin(1,width,seth+1,0)
+            info_win.bkgd(curses.color_pair(6))
+            info_win.addstr(0,5,f"Stadium: {self.events[selected].stadium}  Ref: {self.events[selected].referee} City: {self.events[selected].location}")
 
             screen.refresh()
             menu_win.refresh()
+            header_win.refresh()
+            footer_win.refresh()
+            info_win.refresh()
 
             key = screen.getch()
 
@@ -377,74 +419,123 @@ class Winmenu:
                     selected += 1
                     if selected >= scroll_offset + max_items:
                         scroll_offset += 1
+            #selezione data match
             elif (key == ord("\n") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
                 selected_item = options[selected]
                 data=self.events[selected].flow_events()
                 data_win = curses.newwin(len(data)+3,width-5,4,4)
                 data_win.box()
-                data_win.addstr(0, 5, selected_item)
                 data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
-                data_win.addstr(len(data)+2,5,"'q' to close")
+                header_win.clear()
+                header_win.addstr(0,5,selected_item)
+                footer_win.clear()
+                footer_win.addstr(0,5,"PRESS 'q' to close")
                 table=self.tabulate_strings(data)
                 for r,line in enumerate(table):
                     data_win.addstr(r+1,2,line)
-                #data_win.addstr(3, 3, table)
                 data_win.refresh()
+                header_win.refresh()
+                footer_win.refresh()
                 while True:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         data_win.erase()
+                        screen.clear()
                         break
+            #selezione start 11 line up
             elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
-                form_win=curses.newwin(19,65,2,2)
+                form_win=curses.newwin(20,65,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(3))
-                form_win.addstr(0,3,"Start 11 Line UP")
-                form_win.addstr(18,3,"q to close")
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(3))
+                header_win.addstr(0,3,f"{self.events[selected].teamhome} VS {self.events[selected].teamaway} Start 11 Line UP")
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(3))
+                footer_win.addstr(0,3,"PRESS: 'q' to close")
                 dataf=self.events[selected].list_start11()
                 tablef=self.tabulate_strings(dataf)
                 for r,line in enumerate(tablef):
                     form_win.addstr(r+1,2,line)
 
                 form_win.refresh()
+                header_win.refresh()
+                footer_win.refresh()
                 while True:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         form_win.erase()
+                        screen.clear()
                         break
             #finestra di stampa statistiche partite
             elif (key == ord("s") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST") ):
                 form_win=curses.newwin(23,60,2,2)
                 form_win.box()
                 form_win.bkgd(curses.color_pair(4))
-                form_win.addstr(0,3,"Match Statistic")
-                form_win.addstr(22,3,"q to close")
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(4))
+                header_win.addstr(0,3,f"Match Statistic between {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(4))
+                footer_win.addstr(0,3,"PRESS 'q' to close")
                 dataf=self.events[selected].list_statistic()
                 tablef=self.tabulate_strings(dataf)
                 for r,line in enumerate(tablef):
                     form_win.addstr(r+1,2,line)
                 form_win.refresh()
+                header_win.refresh()
+                footer_win.refresh()
                 while True:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         form_win.erase()
-                        #screen.clear()
+                        screen.clear()
                         #screen.refresh()
                         break
-            #set exit point        
+            #richiesta previsioni betting e confronto
+            elif (key == ord("p") and (self.events[selected].status != "FT")):
+                pred=Prediction(self.events[selected].idfixture)
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(5))
+                header_win.addstr(0,3,f"prediction STAT: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(5))
+                footer_win.addstr(0,3,"PRESS 'q' to close")
+                pred_win=curses.newwin(10,70,2,2)
+                pred_win.box()
+                pred_win.bkgd(curses.color_pair(5))
+                pred_win.addstr(1,4,f"Bet Tip -> {pred.predictionadv}")
+                pred_win.addstr(3,4,"Status Form")
+                pred_win.addstr(5,6,f"{pred.comparison['home']} : {pred.teamhome}")
+                pred_win.addstr(6,6,f"{pred.comparison['away']} : {pred.teamaway}")
+                pred_win.refresh()
+                header_win.refresh()
+                footer_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        pred_win.erase()
+                        screen.clear()
+                        #screen.refresh()
+                        break       
+                            
+
+            #set exit point
             elif key == ord("q"):
                 menu_win.erase()
+                header_win.erase()
+                footer_win.erase()
                 screen.clear()
                 screen.refresh()
                 curses.endwin()
-                
+
                 return -1
 
 
 if args.version:
     print(f"NowScore - version {version}")
     exit() #chiusura del programma dopo la visualizzazione della versione
-    
+
 
 if (args.league!=None) and (args.league.upper() in scl):
     if args.standing !=-1 :
@@ -467,7 +558,7 @@ if (args.league!=None) and (args.league.upper() in scl):
         exit()
     else:
         tdelta=int(args.time_delta)
-        if tdelta>=0: 
+        if tdelta>=0:
             tdeltafrom=datetime.date.today()
             tdeltato=datetime.date.today()+datetime.timedelta(tdelta)
         else:
@@ -476,18 +567,20 @@ if (args.league!=None) and (args.league.upper() in scl):
         p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
         ev=[]
         for m in p:
-            #carichiamo i dati del matrch nella classe
+            #carichiamo i dati del match nella classe
             ev.append(Match(m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
                         m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
                         m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
                         m["fixture"]["referee"],m["fixture"]["venue"]["name"],
                         m["fixture"]["venue"]["city"]))
+            # voglio sapere quale e il response delléxtratime di un match 
+
         try:
             selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
             if selection!=-1:
                 #carichiamo gli eventi
                 pass
-            else: 
+            else:
                 #print(ev[1].flow_events())
                 print(f"NOWScore {version} richiesta di uscita dal programma!")
                 exit()
@@ -499,6 +592,8 @@ try:
     pass
 except:
     print("non hai definito codice lega")
+
+
 
 
 
