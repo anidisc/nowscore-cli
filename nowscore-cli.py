@@ -244,10 +244,12 @@ class Match:
         self.goalsaway=str(gaway) if gaway!=None else "-"
         self.status=status
         self.minutes=str(min) if min!=None else "--"
+        #self.extratime=extratime if extratime!=None else 0
         self.date=dateT.fromisoformat(datematch).strftime("%H:%M %d/%m/%Y")
         self.referee=referee
         self.stadium=stadium
         self.location=city
+
         #proprietá globali di statisthe eventi
         self.homestat=None
         self.awaystat=None
@@ -345,6 +347,7 @@ class Winmenu:
         return table_lines_padded
 
     def menu(self):
+                
         options=self.formatta_liste()
         screen=curses.initscr()
         curses.curs_set(0)
@@ -355,7 +358,9 @@ class Winmenu:
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
         curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
-        curses.init_pair(5, curses.COLOR_WHITE, curses.COLOR_GREEN)
+        curses.init_pair(5, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+2)<height else height-2
@@ -376,7 +381,7 @@ class Winmenu:
             #header striscia titolo eventi scelti
             header_win = curses.newwin(1,width,0,0)
             header_win.bkgd(curses.color_pair(2))
-            header_win.addstr(0,5,self.title)
+            header_win.addstr(0,5, self.title)
             #main box menu
             menu_win = curses.newwin(seth, setw, 1, 5)
             menu_win.box()
@@ -391,11 +396,16 @@ class Winmenu:
                 else:
                     menu_win.attroff(curses.color_pair(1))
                 menu_win.addstr(1 + i, 2, option)
+            
+            info_win=curses.newwin(1,width,seth+1,0)
+            info_win.bkgd(curses.color_pair(6))
+            info_win.addstr(0,5,f"Stadium: {self.events[selected].stadium}  Ref: {self.events[selected].referee} City: {self.events[selected].location}")
 
             screen.refresh()
             menu_win.refresh()
             header_win.refresh()
             footer_win.refresh()
+            info_win.refresh()
 
             key = screen.getch()
 
@@ -555,12 +565,14 @@ if (args.league!=None) and (args.league.upper() in scl):
         p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
         ev=[]
         for m in p:
-            #carichiamo i dati del matrch nella classe
+            #carichiamo i dati del match nella classe
             ev.append(Match(m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
                         m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
                         m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
                         m["fixture"]["referee"],m["fixture"]["venue"]["name"],
                         m["fixture"]["venue"]["city"]))
+            # voglio sapere quale e il response delléxtratime di un match 
+
         try:
             selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
             if selection!=-1:
@@ -578,6 +590,8 @@ try:
     pass
 except:
     print("non hai definito codice lega")
+
+
 
 
 
