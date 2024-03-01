@@ -43,7 +43,8 @@ sc={"SA":135,
     "UCL":2,
     "UEL":3,
     "SB":136,
-    "JUP":144}
+    "JUP":144,
+    "LIVE":0}
 
 scext={"SA":"Italy Serie A",
        "PL":"England Premier League",
@@ -56,7 +57,8 @@ scext={"SA":"Italy Serie A",
        "UCL":"UEFA Champions League Cup",
        "UEL":"UEFA Europa League Cup",
        "SB":"Italy Serie B",
-       "JUP":"Belgium Jupyter League"}
+       "JUP":"Belgium Jupyter League",
+       "LIVE":"Live all Match of the day"}
 
 scl=list(sc.keys()) #convertiamo il dizionario in lista in modo da poter meglio gestire
 sclv=list(scext.values())
@@ -77,7 +79,7 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
                                               - {sclv[10]}={scl[10]}
                                               - {sclv[11]}={scl[11]}""", default=None)
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
-parser.add_argument("-live", "--live", help="Show all live match of the day", action="store_true")
+#parser.add_argument("-live", "--live", help="Show all live match of the day", action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
                                                 if you want show stand of tournament group Uefa
                                                 select index of the group.\n
@@ -195,15 +197,18 @@ def get_statistic(id):
 def get_live_match():
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
 
-    querystring = {"live":"all","date":datetime.date.today()}
+    querystring = {"live":"all"}
 
     headers = {
         "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
         "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"}
-
     response = requests.get(url, headers=headers, params=querystring)
+
+
+    remaining_calls = response.headers.get("X-RateLimit-Requests-Remaining")
+
     tab=json.loads(response.text)
-    return tab["response"]
+    return tab["response"],remaining_calls
 
 #richiede all'avvio le prediction e le analisi comparative dell'evento ID
 class Prediction():
@@ -579,7 +584,10 @@ if (args.league!=None) and (args.league.upper() in scl):
         else:
             tdeltafrom=datetime.date.today()+datetime.timedelta(tdelta)
             tdeltato=datetime.date.today()
-        p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
+        if (args.league.upper()=="LIVE"):
+            p,rem=get_live_match()
+        else:
+            p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
         ev=[]
         for m in p:
             #carichiamo i dati del match nella classe
