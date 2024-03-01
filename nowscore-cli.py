@@ -77,6 +77,7 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
                                               - {sclv[10]}={scl[10]}
                                               - {sclv[11]}={scl[11]}""", default=None)
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
+parser.add_argument("-live", "--live", help="Show all live match of the day", action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
                                                 if you want show stand of tournament group Uefa
                                                 select index of the group.\n
@@ -190,6 +191,20 @@ def get_statistic(id):
         s=TeamStat(teama,team2["type"],team2["value"])
         stataway.append(s)
     return [stathome,stataway]
+#richiede la lista di tutte le partite live per ora poi svulippioamo per settori
+def get_live_match():
+    url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
+
+    querystring = {"live":"all","date":datetime.date.today()}
+
+    headers = {
+        "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+        "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"}
+
+    response = requests.get(url, headers=headers, params=querystring)
+    tab=json.loads(response.text)
+    return tab["response"]
+
 #richiede all'avvio le prediction e le analisi comparative dell'evento ID
 class Prediction():
     def __init__(self,idmatch) -> None:
@@ -209,8 +224,8 @@ class Prediction():
         self.predictionstat={"home":tab["predictions"]["percent"]["home"],
                              "draw":tab["predictions"]["percent"]["draw"],
                              "away":tab["predictions"]["percent"]["away"]}
-        self.comparison={"home":tab["comparison"]["form"]["home"],
-                         "away":tab["comparison"]["form"]["away"]}
+        self.comparison={"home":tab["comparison"]["total"]["home"],
+                         "away":tab["comparison"]["total"]["away"]}
 
 
 
