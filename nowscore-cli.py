@@ -1,5 +1,5 @@
 #Now score version
-version=0.35
+version=0.37
 
 import argparse
 import datetime
@@ -197,7 +197,7 @@ def get_statistic(id):
 def get_live_match():
     url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
 
-    querystring = {"live":"all"}
+    querystring = {"live":"all","timezone":"Europe/Rome"}
 
     headers = {
         "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
@@ -256,7 +256,7 @@ class TeamStat:
         self.value=value
 
 class Match:
-    def __init__(self,idmatch,thome,taway,ghome,gaway,status,min,datematch,referee,stadium,city):
+    def __init__(self,idmatch,thome,taway,ghome,gaway,status,min,datematch,referee,stadium,city,country):
         self.idfixture=idmatch
         self.teamhome=str(thome)
         self.teamaway=taway
@@ -269,6 +269,7 @@ class Match:
         self.referee=referee
         self.stadium=stadium
         self.location=city
+        self.country=str(country).upper()
 
         #proprietá globali di statisthe eventi
         self.homestat=None
@@ -332,7 +333,7 @@ class Winmenu:
         liste=[]
         for event in self.events:
             liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
-                       event.status,event.minutes," - ",event.date])
+                       event.status,event.minutes+" "," - ",event.date,event.country])
         # Crea una lista vuota per memorizzare le liste formattate
         liste_formattate = []
         # Trova la lunghezza della parola più lunga nelle prime due posizioni di tutte le liste
@@ -584,6 +585,7 @@ if (args.league!=None) and (args.league.upper() in scl):
         else:
             tdeltafrom=datetime.date.today()+datetime.timedelta(tdelta)
             tdeltato=datetime.date.today()
+        #verifica se viene invocata la funzione livescore di tutti i match 
         if (args.league.upper()=="LIVE"):
             p,rem=get_live_match()
         else:
@@ -595,8 +597,9 @@ if (args.league!=None) and (args.league.upper() in scl):
                         m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
                         m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
                         m["fixture"]["referee"],m["fixture"]["venue"]["name"],
-                        m["fixture"]["venue"]["city"]))
+                        m["fixture"]["venue"]["city"],m["league"]["country"]))
             # voglio sapere quale e il response delléxtratime di un match 
+            ev.sort(key=lambda match: match.country)
 
         try:
             selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
