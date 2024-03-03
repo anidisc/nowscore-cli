@@ -9,6 +9,7 @@ import curses
 from datetime import datetime as dateT
 from tabulate import tabulate
 import tabulate as tabulate2
+import openai
 
 #init curse to blessed way
 #import blessed
@@ -18,13 +19,14 @@ parser = argparse.ArgumentParser(description="NOWScore Soccer Events CLI")
 
 #select apikey
 apikey1file="rapidkey1.key"
+openaikeyfile="opeanai.key"
 
 # Apri il file in modalità lettura
 with open(apikey1file, 'r') as file:
     # Leggi il primo rigo
-    rapidkey = file.readline().strip()
-
-apikey=str(rapidkey)
+    apikey = str(file.readline().strip())
+with open(openaikeyfile, 'r') as file2:
+    openaikey=str(file2.readline().strip())
 
 
 #set timezone
@@ -238,6 +240,23 @@ class Prediction():
                              "away":tab["predictions"]["percent"]["away"]}
         self.comparison={"home":tab["comparison"]["total"]["home"],
                          "away":tab["comparison"]["total"]["away"]}
+        
+        #create a method that receive as parameter a text and call api openai whit apikey variable and retur a text as output
+        def gpt_call(textinput):
+            openai.api_key = openaikey
+            messages = [ {"role": "system", "content":"You are a intelligent assistant. Predict match and analize statistic to formulate a possible result of match"} ]
+            message = textinput
+            if message:
+                messages.append(
+                    {"role": "user", "content": message},
+                )
+                chat = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo", messages=messages
+                )
+            answer = chat.choices[0].message.content
+            return answer
+
+                    
 
 
 
