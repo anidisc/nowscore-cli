@@ -333,7 +333,7 @@ class Winmenu:
         liste=[]
         for event in self.events:
             liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
-                       event.status,event.minutes+" "," - ",event.date,event.country])
+                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country])
         # Crea una lista vuota per memorizzare le liste formattate
         liste_formattate = []
         # Trova la lunghezza della parola più lunga nelle prime due posizioni di tutte le liste
