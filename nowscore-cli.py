@@ -1,5 +1,5 @@
 #Now score version
-version=0.35
+version=0.37
 
 import argparse
 import datetime
@@ -43,7 +43,8 @@ sc={"SA":135,
     "UCL":2,
     "UEL":3,
     "SB":136,
-    "JUP":144}
+    "JUP":144,
+    "LIVE":0}
 
 scext={"SA":"Italy Serie A",
        "PL":"England Premier League",
@@ -56,7 +57,8 @@ scext={"SA":"Italy Serie A",
        "UCL":"UEFA Champions League Cup",
        "UEL":"UEFA Europa League Cup",
        "SB":"Italy Serie B",
-       "JUP":"Belgium Jupyter League"}
+       "JUP":"Belgium Jupyter League",
+       "LIVE":"Live all Match of the day"}
 
 scl=list(sc.keys()) #convertiamo il dizionario in lista in modo da poter meglio gestire
 sclv=list(scext.values())
@@ -77,6 +79,7 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
                                               - {sclv[10]}={scl[10]}
                                               - {sclv[11]}={scl[11]}""", default=None)
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
+#parser.add_argument("-live", "--live", help="Show all live match of the day", action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
                                                 if you want show stand of tournament group Uefa
                                                 select index of the group.\n
@@ -190,6 +193,23 @@ def get_statistic(id):
         s=TeamStat(teama,team2["type"],team2["value"])
         stataway.append(s)
     return [stathome,stataway]
+#richiede la lista di tutte le partite live per ora poi svulippioamo per settori
+def get_live_match():
+    url = "https://api-football-v1.p.rapidapi.com/v3/fixtures"
+
+    querystring = {"live":"all","timezone":"Europe/Rome"}
+
+    headers = {
+        "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+        "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"}
+    response = requests.get(url, headers=headers, params=querystring)
+
+
+    remaining_calls = response.headers.get("X-RateLimit-Requests-Remaining")
+
+    tab=json.loads(response.text)
+    return tab["response"],remaining_calls
+
 #richiede all'avvio le prediction e le analisi comparative dell'evento ID
 class Prediction():
     def __init__(self,idmatch) -> None:
@@ -209,8 +229,8 @@ class Prediction():
         self.predictionstat={"home":tab["predictions"]["percent"]["home"],
                              "draw":tab["predictions"]["percent"]["draw"],
                              "away":tab["predictions"]["percent"]["away"]}
-        self.comparison={"home":tab["comparison"]["form"]["home"],
-                         "away":tab["comparison"]["form"]["away"]}
+        self.comparison={"home":tab["comparison"]["total"]["home"],
+                         "away":tab["comparison"]["total"]["away"]}
 
 
 
@@ -236,19 +256,20 @@ class TeamStat:
         self.value=value
 
 class Match:
-    def __init__(self,idmatch,thome,taway,ghome,gaway,status,min,datematch,referee,stadium,city):
+    def __init__(self,idmatch,thome,taway,ghome,gaway,status,min,datematch,referee,stadium,city,country):
         self.idfixture=idmatch
         self.teamhome=str(thome)
         self.teamaway=taway
         self.goalshome=str(ghome) if ghome!=None else "-"
         self.goalsaway=str(gaway) if gaway!=None else "-"
         self.status=status
-        self.minutes=str(min) if min!=None else "--"
+        self.minutes=str(min) if min!=None else "0"
         #self.extratime=extratime if extratime!=None else 0
         self.date=dateT.fromisoformat(datematch).strftime("%H:%M %d/%m/%Y")
         self.referee=referee
         self.stadium=stadium
         self.location=city
+        self.country=str(country).upper()
 
         #proprietá globali di statisthe eventi
         self.homestat=None
@@ -312,7 +333,7 @@ class Winmenu:
         liste=[]
         for event in self.events:
             liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
-                       event.status,event.minutes," - ",event.date])
+                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country])
         # Crea una lista vuota per memorizzare le liste formattate
         liste_formattate = []
         # Trova la lunghezza della parola più lunga nelle prime due posizioni di tutte le liste
@@ -564,7 +585,11 @@ if (args.league!=None) and (args.league.upper() in scl):
         else:
             tdeltafrom=datetime.date.today()+datetime.timedelta(tdelta)
             tdeltato=datetime.date.today()
-        p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
+        #verifica se viene invocata la funzione livescore di tutti i match 
+        if (args.league.upper()=="LIVE"):
+            p,rem=get_live_match()
+        else:
+            p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
         ev=[]
         for m in p:
             #carichiamo i dati del match nella classe
@@ -572,8 +597,9 @@ if (args.league!=None) and (args.league.upper() in scl):
                         m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
                         m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
                         m["fixture"]["referee"],m["fixture"]["venue"]["name"],
-                        m["fixture"]["venue"]["city"]))
+                        m["fixture"]["venue"]["city"],m["league"]["country"]))
             # voglio sapere quale e il response delléxtratime di un match 
+            ev.sort(key=lambda match: match.country)
 
         try:
             selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()

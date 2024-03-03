@@ -1,5 +1,5 @@
 import openai
-openai.api_key = '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'
+openai.api_key = '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'
 messages = [ {"role": "system", "content":"You are a intelligent assistant."} ]
 while True:
    message = input("User : ")
@@ -13,3 +13,4 @@ while True:
    answer = chat.choices[0].message.content
    print(f"ChatGPT: {answer}")
    messages.append({"role": "assistant", "content": answer})
+
