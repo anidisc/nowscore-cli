@@ -44,6 +44,8 @@ sc={"SA":135,
     "UEL":3,
     "SB":136,
     "JUP":144,
+    "SLD":119,
+    "BLA":218,
     "LIVE":0}
 
 scext={"SA":"Italy Serie A",
@@ -58,6 +60,8 @@ scext={"SA":"Italy Serie A",
        "UEL":"UEFA Europa League Cup",
        "SB":"Italy Serie B",
        "JUP":"Belgium Jupyter League",
+       "SLD":"Superlegue Denmark",
+       "BLA":"Bundeliga Austria",
        "LIVE":"Live all Match of the day"}
 
 scl=list(sc.keys()) #convertiamo il dizionario in lista in modo da poter meglio gestire
@@ -77,7 +81,10 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
                                               - {sclv[8]}={scl[8]}
                                               - {sclv[9]}={scl[9]}
                                               - {sclv[10]}={scl[10]}
-                                              - {sclv[11]}={scl[11]}""", default=None)
+                                              - {sclv[11]}={scl[11]}
+                                              - {sclv[12]}={scl[12]}
+                                              - {sclv[13]}={scl[13]}
+                                              - {sclv[14]}={scl[14]}""", default=None)
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 #parser.add_argument("-live", "--live", help="Show all live match of the day", action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
