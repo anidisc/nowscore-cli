@@ -1,17 +1,15 @@
-import os
-from openai import OpenAI
-
-client = OpenAI(
-    # This is the default and can be omitted
-    api_key="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"
-)
-
-chat_completion = client.chat.completions.create(
-    messages=[
-        {
-            "role": "user",
-            "content": "Say this is a test",
-        }
-    ],
-    model="gpt-3.5-turbo",
-)
+import openai
+openai.api_key = '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'
+messages = [ {"role": "system", "content":"You are a intelligent assistant."} ]
+while True:
+   message = input("User : ")
+   if message:
+      messages.append(
+         {"role": "user", "content": message},
+      )
+      chat = openai.ChatCompletion.create(
+         model="gpt-3.5-turbo", messages=messages
+      )
+   answer = chat.choices[0].message.content
+   print(f"ChatGPT: {answer}")
+   messages.append({"role": "assistant", "content": answer})
