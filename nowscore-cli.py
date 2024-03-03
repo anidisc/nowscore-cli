@@ -263,7 +263,7 @@ class Match:
         self.goalshome=str(ghome) if ghome!=None else "-"
         self.goalsaway=str(gaway) if gaway!=None else "-"
         self.status=status
-        self.minutes=str(min) if min!=None else "--"
+        self.minutes=str(min) if min!=None else "0"
         #self.extratime=extratime if extratime!=None else 0
         self.date=dateT.fromisoformat(datematch).strftime("%H:%M %d/%m/%Y")
         self.referee=referee
