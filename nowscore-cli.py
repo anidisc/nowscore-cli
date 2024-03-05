@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description="NOWScore Soccer Events CLI")
 
 #select apikey
 apikey1file="rapidkey1.key"
-openaikeyfile="opeanai.key"
+openaikeyfile="openai.key"
 
 # Apri il file in modalità lettura
 with open(apikey1file, 'r') as file:
@@ -48,6 +48,7 @@ sc={"SA":135,
     "JUP":144,
     "SLD":119,
     "BLA":218,
+    "SLG":9,
     "LIVE":0}
 
 scext={"SA":"Italy Serie A",
@@ -62,8 +63,9 @@ scext={"SA":"Italy Serie A",
        "UEL":"UEFA Europa League Cup",
        "SB":"Italy Serie B",
        "JUP":"Belgium Jupyter League",
-       "SLD":"Superlegue Denmark",
-       "BLA":"Bundeliga Austria",
+       "SLD":"Denmark Superlegue",
+       "BLA":"Austria Bundeliga",
+       "SLG":"Greek Super League",
        "LIVE":"Live all Match of the day"}
 
 scl=list(sc.keys()) #convertiamo il dizionario in lista in modo da poter meglio gestire
@@ -86,7 +88,8 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
                                               - {sclv[11]}={scl[11]}
                                               - {sclv[12]}={scl[12]}
                                               - {sclv[13]}={scl[13]}
-                                              - {sclv[14]}={scl[14]}""", default=None)
+                                              - {sclv[14]}={scl[14]}
+                                              - {sclv[15]}={scl[15]}""", default=None)
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 #parser.add_argument("-live", "--live", help="Show all live match of the day", action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
@@ -241,20 +244,20 @@ class Prediction():
         self.comparison={"home":tab["comparison"]["total"]["home"],
                          "away":tab["comparison"]["total"]["away"]}
         
-        #create a method that receive as parameter a text and call api openai whit apikey variable and retur a text as output
-        def gpt_call(textinput):
-            openai.api_key = openaikey
-            messages = [ {"role": "system", "content":"You are a intelligent assistant. Predict match and analize statistic to formulate a possible result of match"} ]
-            message = textinput
-            if message:
-                messages.append(
-                    {"role": "user", "content": message},
-                )
-                chat = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo", messages=messages
-                )
-            answer = chat.choices[0].message.content
-            return answer
+    #create a method that receive as parameter a text and call api openai whit apikey variable and retur a text as output
+    def gpt_call(textinput):
+        openai.api_key = openaikey
+        messages = [ {"role": "system", "content":"You are a intelligent assistant. Predict match and analize statistic to formulate a possible result of match"} ]
+        message = textinput
+        if message:
+            messages.append(
+                {"role": "user", "content": message},
+            )
+            chat = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo", messages=messages
+            )
+        answer = chat.choices[0].message.content
+        return answer
 
                     
 
@@ -392,6 +395,41 @@ class Winmenu:
         table_lines_padded = [line.ljust(max_length) for line in table_lines]
 
         return table_lines_padded
+    # giustifica un testo lungo e ne restuisce una lista di stringhe
+    def giustifica_testo(self, testo, lunghezza):
+        parole = testo.split()
+        righe = []
+        riga_corrente = []
+        lunghezza_corrente = 0
+        
+        for parola in parole:
+            # Se la lunghezza della parola supera la lunghezza massima consentita, 
+            # va direttamente in una nuova riga
+            if len(parola) > lunghezza:
+                righe.append("".join(riga_corrente))
+                riga_corrente = []
+                lunghezza_corrente = 0
+                while len(parola) > lunghezza:
+                    righe.append(parola[:lunghezza])
+                    parola = parola[lunghezza:]
+            
+            # Se la parola non va oltre la lunghezza massima consentita nella riga corrente,
+            # la aggiungiamo e aggiorniamo la lunghezza corrente
+            if lunghezza_corrente + len(riga_corrente) + len(parola) <= lunghezza:
+                riga_corrente.append(parola)
+                lunghezza_corrente += len(parola)
+            # Altrimenti, creiamo una nuova riga con la parola
+            else:
+                righe.append(" ".join(riga_corrente))
+                riga_corrente = [parola]
+                lunghezza_corrente = len(parola)
+        
+        # Aggiungiamo l'ultima riga, se non vuota
+        if riga_corrente:
+            righe.append(" ".join(riga_corrente))
+        
+        return righe
+
 
     def menu(self):
                 
@@ -541,30 +579,58 @@ class Winmenu:
                         break
             #richiesta previsioni betting e confronto
             elif (key == ord("p") and (self.events[selected].status != "FT")):
-                pred=Prediction(self.events[selected].idfixture)
+                testoprova="In questa classifica di Serie A, l'Inter è attualmente in testa con 69 punti dopo 26 partite, seguita dalla Juventus con 57 punti in 27 partite e dall'AC Milan con 56 punti in 27 partite. Guardando le statistiche, l'Inter ha la miglior difesa con solo 12 gol subiti e un attacco prolifico con 67 gol segnati. La Juventus ha una buona difesa ma ha subito più gol dell'Inter, mentre l'AC Milan ha un buon equilibrio tra attacco e difesa."
+                #textjustify=self.giustifica_testo(testoprova,50)
+                #pred=Prediction(self.events[selected].idfixture).gpt_call()
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(5))
                 header_win.addstr(0,3,f"prediction STAT: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                header_win.refresh()
                 footer_win.clear()
                 footer_win.bkgd(curses.color_pair(5))
                 footer_win.addstr(0,3,"PRESS 'q' to close")
+                footer_win.refresh()
                 pred_win=curses.newwin(10,70,2,2)
                 pred_win.box()
                 pred_win.bkgd(curses.color_pair(5))
-                pred_win.addstr(1,4,f"Bet Tip -> {pred.predictionadv}")
-                pred_win.addstr(3,4,"Status Form")
-                pred_win.addstr(5,6,f"{pred.comparison['home']} : {pred.teamhome}")
-                pred_win.addstr(6,6,f"{pred.comparison['away']} : {pred.teamaway}")
-                pred_win.refresh()
-                header_win.refresh()
-                footer_win.refresh()
+                pred_win_x,pred_win_y=pred_win.getmaxyx()
+                textjustify=self.giustifica_testo(testoprova,pred_win_y-4)
+
+                # pred_win.addstr(1,4,f"Bet Tip -> {pred.predictionadv}")
+                # pred_win.addstr(3,4,"Status Form")
+                # pred_win.addstr(5,6,f"{pred.comparison['home']} : {pred.teamhome}")
+                # pred_win.addstr(6,6,f"{pred.comparison['away']} : {pred.teamaway}")
+                #stampa la risposta chiamando la il metodo callgpt
+                altezza = min(len(textjustify), pred_win_x - 2)
+                start_index=0
                 while True:
-                    pausekey=screen.getch() #fa una pausa
-                    if pausekey==ord("q"):
+                    # Visualizza le righe correnti
+                    for i in range(altezza):
+                        if start_index + i < len(textjustify):
+                            pred_win.addstr(i + 1, 1, textjustify[start_index + i][:width - 4])
+                    pred_win.refresh()
+                    # Attendi l'input dell'utente
+                    tasto = screen.getch()
+
+                    # Gestisci gli input delle frecce
+                    if tasto == curses.KEY_UP:
+                        start_index = max(0, start_index - 1)
+                    elif tasto == curses.KEY_DOWN:
+                        start_index = min(len(textjustify) - altezza, start_index + 1)
+                    elif tasto == ord('q'):  # Per uscire, premi 'q'
                         pred_win.erase()
                         screen.clear()
-                        #screen.refresh()
-                        break       
+                        break
+                    #pred_win.refresh()
+                    #header_win.refresh()
+                    footer_win.refresh()
+                # while True:
+                #     pausekey=screen.getch() #fa una pausa
+                #     if pausekey==ord("q"):
+                #         pred_win.erase()
+                #         screen.clear()
+                #         #screen.refresh()
+                #         break       
                             
 
             #set exit point
@@ -599,9 +665,11 @@ if (args.league!=None) and (args.league.upper() in scl):
                 ' '.join(t["form"]),t["status"]]
             classifica.append(row)
         #stampa la classifica
+        tabulato=tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
         print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
-              +tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
+              +tabulato
               +"\n")
+        #print(Prediction.gpt_call(tabulato+" analizza questa classifica"))
         exit()
     else:
         tdelta=int(args.time_delta)
