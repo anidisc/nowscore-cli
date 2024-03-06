@@ -245,10 +245,21 @@ class Prediction():
                          "away":tab["comparison"]["total"]["away"]}
         
     #create a method that receive as parameter a text and call api openai whit apikey variable and retur a text as output
-    def gpt_call(textinput):
+    def gpt_call(prompt,squadra1,squadra2):
         openai.api_key = openaikey
-        messages = [ {"role": "system", "content":"You are a intelligent assistant. Predict match and analize statistic to formulate a possible result of match"} ]
-        message = textinput
+        content=f"""Sei un analist di calcio e analizzi le partite nei dettagli, cerca di fornire un prononisto
+        in base alla classifica delle due sqadre che si incontrano ovvero {squadra1} contro {squadra2}
+        analizza bene nel dettaglio i punti in classifica e i gol fatti generial e subiti 
+        e fai attenzioni ai gol fatti in casa e subiti e quelli fatti fuori casa e subiti. 
+        Le striscie di vittorie pareggi e sconfigge consecutive.
+        Cerca di dare un pronostico sul possbile esito 1 X 2 o 1X o X2 o se ulteriormente GG se credi
+        possano segnare entrambe le squadre o NG se non prevedi che una sqaudra possa segnare. O1.5 o O2.5
+        che sarebbe over 2,5 se segnano piu di 2 goals, analogamente U1,5 o U2,5. Anche piu pronostici
+        insieme ma cerca di essere dettagliato nella motivazione che ti spinge a credere
+        in quello che prevedi."""
+        messages = [ {"role": "system", "content":content} ]
+        message = f"""data questa classifica {prompt} fammi un pronostico 
+        della partita tra {squadra1} contro {squadra2} """
         if message:
             messages.append(
                 {"role": "user", "content": message},
@@ -285,7 +296,8 @@ class TeamStat:
         self.value=value
 
 class Match:
-    def __init__(self,idmatch,thome,taway,ghome,gaway,status,min,datematch,referee,stadium,city,country):
+    def __init__(self,idleague,idmatch,thome,taway,ghome,gaway,status,min,datematch,referee,stadium,city,country):
+        self.idleague=idleague
         self.idfixture=idmatch
         self.teamhome=str(thome)
         self.teamaway=taway
@@ -356,7 +368,7 @@ class Winmenu:
     def __init__(self,events:list,title="select options"):
         self.events=events
         self.title=title
-
+        self.classifica=None
     # Definisci una funzione che prende una lista di liste di # Definisci una funzione che prende una lista di liste di stringhe come parametro
     def formatta_liste(self):
         liste=[]
@@ -484,7 +496,7 @@ class Winmenu:
             
             info_win=curses.newwin(1,width,seth+1,0)
             info_win.bkgd(curses.color_pair(6))
-            info_win.addstr(0,5,f"Stadium: {self.events[selected].stadium}  Ref: {self.events[selected].referee} City: {self.events[selected].location}")
+            info_win.addstr(0,5,f"City: {self.events[selected].location} | Stadium: {self.events[selected].stadium} |  Ref: {self.events[selected].referee}")
 
             screen.refresh()
             menu_win.refresh()
@@ -578,8 +590,8 @@ class Winmenu:
                         #screen.refresh()
                         break
             #richiesta previsioni betting e confronto
-            elif (key == ord("p") and (self.events[selected].status != "FT")):
-                testoprova="In questa classifica di Serie A, l'Inter è attualmente in testa con 69 punti dopo 26 partite, seguita dalla Juventus con 57 punti in 27 partite e dall'AC Milan con 56 punti in 27 partite. Guardando le statistiche, l'Inter ha la miglior difesa con solo 12 gol subiti e un attacco prolifico con 67 gol segnati. La Juventus ha una buona difesa ma ha subito più gol dell'Inter, mentre l'AC Milan ha un buon equilibrio tra attacco e difesa."
+            elif (key == ord("p") and (self.events[selected].status == "NS")):
+                #predictiontext="In questa classifica di Serie A, l'Inter è attualmente in testa con 69 punti dopo 26 partite, seguita dalla Juventus con 57 punti in 27 partite e dall'AC Milan con 56 punti in 27 partite. Guardando le statistiche, l'Inter ha la miglior difesa con solo 12 gol subiti e un attacco prolifico con 67 gol segnati. La Juventus ha una buona difesa ma ha subito più gol dell'Inter, mentre l'AC Milan ha un buon equilibrio tra attacco e difesa."
                 #textjustify=self.giustifica_testo(testoprova,50)
                 #pred=Prediction(self.events[selected].idfixture).gpt_call()
                 header_win.clear()
@@ -588,26 +600,35 @@ class Winmenu:
                 header_win.refresh()
                 footer_win.clear()
                 footer_win.bkgd(curses.color_pair(5))
-                footer_win.addstr(0,3,"PRESS 'q' to close")
+                footer_win.addstr(0,3,"PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
                 footer_win.refresh()
-                pred_win=curses.newwin(10,70,2,2)
+                pred_win=curses.newwin(10,width-2,2,2)
                 pred_win.box()
                 pred_win.bkgd(curses.color_pair(5))
                 pred_win_x,pred_win_y=pred_win.getmaxyx()
-                textjustify=self.giustifica_testo(testoprova,pred_win_y-4)
 
-                # pred_win.addstr(1,4,f"Bet Tip -> {pred.predictionadv}")
-                # pred_win.addstr(3,4,"Status Form")
-                # pred_win.addstr(5,6,f"{pred.comparison['home']} : {pred.teamhome}")
-                # pred_win.addstr(6,6,f"{pred.comparison['away']} : {pred.teamaway}")
-                #stampa la risposta chiamando la il metodo callgpt
-                altezza = min(len(textjustify), pred_win_x - 2)
+                #inizia la predizione
+                if self.classifica == None :
+                    list_stand,rem=get_standing_season(self.events[selected].idleague)
+                    self.classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
+                    for t in list_stand:
+                        row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
+                            t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
+                            t["all"]["goals"]["for"],t["all"]["goals"]["against"],
+                            t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
+                            ' '.join(t["form"]),t["status"]]
+                        self.classifica.append(row)
+                tabclassifica=tabulate(self.classifica,headers="firstrow",tablefmt="rounded_outline")
+                predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway)
+                predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
+
+                altezza = min(len(predictiontext), pred_win_x - 2)
                 start_index=0
                 while True:
                     # Visualizza le righe correnti
                     for i in range(altezza):
-                        if start_index + i < len(textjustify):
-                            pred_win.addstr(i + 1, 1, textjustify[start_index + i][:width - 4])
+                        if start_index + i < len(predictiontext):
+                            pred_win.addstr(i + 1, 1, predictiontext[start_index + i][:width - 4])
                     pred_win.refresh()
                     # Attendi l'input dell'utente
                     tasto = screen.getch()
@@ -615,15 +636,19 @@ class Winmenu:
                     # Gestisci gli input delle frecce
                     if tasto == curses.KEY_UP:
                         start_index = max(0, start_index - 1)
+                        pred_win.clear()
+                        pred_win.box()
                     elif tasto == curses.KEY_DOWN:
-                        start_index = min(len(textjustify) - altezza, start_index + 1)
+                        start_index = min(len(predictiontext) - altezza, start_index + 1)
+                        pred_win.clear()
+                        pred_win.box()
                     elif tasto == ord('q'):  # Per uscire, premi 'q'
                         pred_win.erase()
                         screen.clear()
                         break
                     #pred_win.refresh()
                     #header_win.refresh()
-                    footer_win.refresh()
+                    #footer_win.refresh()
                 # while True:
                 #     pausekey=screen.getch() #fa una pausa
                 #     if pausekey==ord("q"):
@@ -665,9 +690,9 @@ if (args.league!=None) and (args.league.upper() in scl):
                 ' '.join(t["form"]),t["status"]]
             classifica.append(row)
         #stampa la classifica
-        tabulato=tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
+        tabclassifica=tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
         print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
-              +tabulato
+              +tabclassifica
               +"\n")
         #print(Prediction.gpt_call(tabulato+" analizza questa classifica"))
         exit()
@@ -687,7 +712,7 @@ if (args.league!=None) and (args.league.upper() in scl):
         ev=[]
         for m in p:
             #carichiamo i dati del match nella classe
-            ev.append(Match(m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
+            ev.append(Match(m["league"]["id"],m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
                         m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
                         m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
                         m["fixture"]["referee"],m["fixture"]["venue"]["name"],
