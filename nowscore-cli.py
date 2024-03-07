@@ -251,7 +251,8 @@ class Prediction():
         in base alla classifica delle due sqadre che si incontrano ovvero {squadra1} contro {squadra2}
         analizza bene nel dettaglio i punti in classifica e i gol fatti generial e subiti 
         e fai attenzioni ai gol fatti in casa e subiti e quelli fatti fuori casa e subiti. 
-        Le striscie di vittorie pareggi e sconfigge consecutive.
+        Le striscie di vittorie pareggi e sconfigge consecutive. Tieni conto anche della capacita di una squadra di fare punti 
+        in casa o fuori casa basandoti sulle statistiche.
         Cerca di dare un pronostico sul possbile esito 1 X 2 o 1X o X2 o se ulteriormente GG se credi
         possano segnare entrambe le squadre o NG se non prevedi che una sqaudra possa segnare. O1.5 o O2.5
         che sarebbe over 2,5 se segnano piu di 2 goals, analogamente U1,5 o U2,5. Anche piu pronostici
@@ -290,9 +291,9 @@ class Player:
 #classe che cataloga le statistiche dell'incontro stabilite da rapidapi
 #esempio shot on goal, total shot, corner, etc
 class TeamStat:
-    def __init__(self,teamName,type,value):
+    def __init__(self,teamName,tipo,value):
         self.teamName=teamName
-        self.type=type
+        self.type=tipo
         self.value=value
 
 class Match:
@@ -441,8 +442,7 @@ class Winmenu:
             righe.append(" ".join(riga_corrente))
         
         return righe
-
-
+    #display menu della lista eventi e ne processa le varie sotto-opzioni
     def menu(self):
                 
         options=self.formatta_liste()
@@ -458,15 +458,13 @@ class Winmenu:
         curses.init_pair(5, curses.COLOR_GREEN, curses.COLOR_BLACK)
         curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
 
-
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+3)<height else height-3
         setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2
 
-
-
         menu_items = len(options)
         max_items = height - 5
+
         if menu_items > max_items:
             scroll_offset = 0
             selected = 0
@@ -689,14 +687,23 @@ if (args.league!=None) and (args.league.upper() in scl):
             args.standing=0
 
         list_stand,rem=get_standing_season(sc[args.league.upper()],args.standing)
-        classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
+        #versione classifica semplice	
+        classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","FORM"]]
         for t in list_stand:
             row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
                 t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
                 t["all"]["goals"]["for"],t["all"]["goals"]["against"],
-                t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
-                ' '.join(t["form"]),t["status"]]
+                ' '.join(t["form"])]
             classifica.append(row)
+        #versione dettagliata della classifica
+        # classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
+        # for t in list_stand:
+        #     row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
+        #         t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
+        #         t["all"]["goals"]["for"],t["all"]["goals"]["against"],
+        #         t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
+        #         ' '.join(t["form"]),t["status"]]
+        #     classifica.append(row)
         #stampa la classifica
         tabclassifica=tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
         print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
