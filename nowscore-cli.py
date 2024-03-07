@@ -485,19 +485,25 @@ class Winmenu:
             #footer stricia messaggi di aiuto
             footer_win=curses.newwin(1,width,height-1,0)
             footer_win.bkgd(curses.color_pair(2))
-            footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - 's' match-Stats - 'ENTER' data - 'p' Predictions Match")
-
+            try:
+                footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - 's' match-Stats - 'ENTER' data - 'p' Predictions Match")
+            except:
+                footer_win.clear()
+                footer_win.addstr(0,3,"PRESS: 'q' - 'f' - 's' - 'p' ")
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
                 else:
                     menu_win.attroff(curses.color_pair(1))
                 menu_win.addstr(1 + i, 2, option)
-            
+            #striscia di informazioni plus sul match
             info_win=curses.newwin(1,width,seth+1,0)
             info_win.bkgd(curses.color_pair(6))
-            info_win.addstr(0,5,f"City: {self.events[selected].location} | Stadium: {self.events[selected].stadium} |  Ref: {self.events[selected].referee}")
-
+            try:
+                info_win.addstr(0,5,f"City: {self.events[selected].location} | Stadium: {self.events[selected].stadium} |  Ref: {self.events[selected].referee}")
+            except:
+                info_win.clear()
+                info_win.addstr(0,5,"No space ti show info!")
             screen.refresh()
             menu_win.refresh()
             header_win.refresh()
@@ -618,7 +624,7 @@ class Winmenu:
                             t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
                             ' '.join(t["form"]),t["status"]]
                         self.classifica.append(row)
-                tabclassifica=tabulate(self.classifica,headers="firstrow",tablefmt="rounded_outline")
+                tabclassifica=tabulate(self.classifica,headers="firstrow")
                 predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway)
                 predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
 
