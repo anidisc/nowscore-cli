@@ -1,5 +1,5 @@
 #Now score version
-version=0.37
+version=0.39
 
 import argparse
 import datetime
@@ -616,10 +616,12 @@ class Winmenu:
                 #inizia la predizione
                 if self.classifica == None :
                     list_stand,rem=get_standing_season(self.events[selected].idleague)
-                    self.classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
+                    self.classifica=[["POS","TEAM","PO","RO","W","D","L","WH","DH","LH","WA","DA","LA","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
                     for t in list_stand:
                         row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
                             t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
+                            t["home"]["win"],t["home"]["draw"],t["home"]["lose"],
+                            t["away"]["win"],t["away"]["draw"],t["away"]["lose"],
                             t["all"]["goals"]["for"],t["all"]["goals"]["against"],
                             t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
                             ' '.join(t["form"]),t["status"]]
