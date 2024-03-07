@@ -10,6 +10,8 @@ from datetime import datetime as dateT
 from tabulate import tabulate
 import tabulate as tabulate2
 import openai
+import sys
+
 
 #init curse to blessed way
 #import blessed
@@ -96,6 +98,8 @@ parser.add_argument("-s", "--standing", help="""Show standing of selected league
                                                 if you want show stand of tournament group Uefa
                                                 select index of the group.\n
                                                 Example: GROUP A=0 GROUP B=1 ....\n""",type=int, choices=range(8), default=-1, nargs="?")
+parser.add_argument("noshort", nargs="?", const="noshort", default=None,
+                        help="Opzione per visualizzare la classifica dettagliata")
 parser.add_argument("-t", "--time_delta", help="""set time from-to show fixtures by day\n
                                                   example: t=-3 set start date to 3 day ago\n
                                                   example: t=7 set stop date from today to 7 days away\n
@@ -687,23 +691,26 @@ if (args.league!=None) and (args.league.upper() in scl):
             args.standing=0
 
         list_stand,rem=get_standing_season(sc[args.league.upper()],args.standing)
-        #versione classifica semplice	
-        classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","FORM"]]
-        for t in list_stand:
-            row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
-                t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
-                t["all"]["goals"]["for"],t["all"]["goals"]["against"],
-                ' '.join(t["form"])]
-            classifica.append(row)
-        #versione dettagliata della classifica
-        # classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
-        # for t in list_stand:
-        #     row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
-        #         t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
-        #         t["all"]["goals"]["for"],t["all"]["goals"]["against"],
-        #         t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
-        #         ' '.join(t["form"]),t["status"]]
-        #     classifica.append(row)
+        #versione classifica semplice
+        if not (args.noshort=="noshort"):	
+            classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","FORM"]]
+            for t in list_stand:
+                row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
+                    t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
+                    t["all"]["goals"]["for"],t["all"]["goals"]["against"],
+                    ' '.join(t["form"])]
+                classifica.append(row)
+        else:
+                
+            #versione dettagliata della classifica
+            classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
+            for t in list_stand:
+                row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
+                    t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
+                    t["all"]["goals"]["for"],t["all"]["goals"]["against"],
+                    t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
+                    ' '.join(t["form"]),t["status"]]
+                classifica.append(row)
         #stampa la classifica
         tabclassifica=tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
         print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
