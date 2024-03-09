@@ -49,33 +49,48 @@ You can use the following options to interact with the application:
    ```
 
 5. Show standing of single season of Uefa Champions League
-
-6. ```bash
+   
+   ```bash
    nowscore-cli -l ucl -s 0 "season A" 1 "season B" 2 "season C"...
+   ```
+
+6. Show all match live in this datetime
+   
+   ```bash
+   nowscore-cli -l live
    ```
 
 ## Supported League Codes
 
 You can use the following league codes to access information for the desired football leagues using the application:
 
-| Code | League                 |
-| ---- | ---------------------- |
-| SA   | Italy Serie A          |
-| PL   | England Premier League |
-| BL   | Germany Bundesliga     |
-| LIGA | Spain La Liga          |
-| L1   | France Ligue 1         |
-| ER   | Netherlands Eredivisie |
-| SL   | Turkey Süper Lig       |
-| PPL  | Portugal Primeira Liga |
-| UCL  | UEFA Champions League  |
-| UEL  | UEFA Europa League     |
-| SB   | Italy Serie B          |
-| JUP  | Belgium Jupiter League |
+| Codice | Campionato                    |
+| ------ | ----------------------------- |
+| SA     | Italy Serie A                 |
+| PL     | England Premier League        |
+| BL     | Germany Bundesliga            |
+| LIGA   | Spain La Liga                 |
+| L1     | France Ligue 1                |
+| ER     | Netherlands Eredivisie        |
+| SL     | Turkey Süper Lig              |
+| PPL    | Portugal Primeira Liga        |
+| UCL    | UEFA Champions League Cup     |
+| UEL    | UEFA Europa League Cup        |
+| UECL   | UEFA Europa Conference League |
+| SB     | Italy Serie B                 |
+| JUP    | Belgium Jupiler League        |
+| SLD    | Denmark Superliga             |
+| BLA    | Austria Bundesliga            |
+| SLG    | Greek Super League            |
+| LIVE   | Live all Match of the day     |
 
 Use these codes to view results, standings, and fixtures for your desired football leagues.
 
 We hope this table helps you effectively utilize the application!
+
+**new features from v0.39**
+
+In addition, you have added the ability to create a prediction for each match in the program. To use this feature, users will need to create a file named openai.key and insert their OpenAI key into it. This key will be used to access the OpenAI API for generating match predictions
 
 # Obtain a RapidAPI Key for the Footbal API
 

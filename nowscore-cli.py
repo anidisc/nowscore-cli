@@ -1,3 +1,6 @@
+#!/usr/bin/python
+
+
 #Now score version
 version=0.39
 
@@ -46,6 +49,7 @@ sc={"SA":135,
     "PPL":94,
     "UCL":2,
     "UEL":3,
+    "UECL":848,
     "SB":136,
     "JUP":144,
     "SLD":119,
@@ -63,6 +67,7 @@ scext={"SA":"Italy Serie A",
        "PPL":"Portugal Primeira Liga",
        "UCL":"UEFA Champions League Cup",
        "UEL":"UEFA Europa League Cup",
+       "UECL":"EUFA Europa Conference League",
        "SB":"Italy Serie B",
        "JUP":"Belgium Jupyter League",
        "SLD":"Denmark Superlegue",
@@ -91,7 +96,8 @@ parser.add_argument("-l", "--league", help=f"""Show league options:
                                               - {sclv[12]}={scl[12]}
                                               - {sclv[13]}={scl[13]}
                                               - {sclv[14]}={scl[14]}
-                                              - {sclv[15]}={scl[15]}""", default=None)
+                                              - {sclv[15]}={scl[15]}
+                                              - {sclv[16]}={scl[16]}""", default=None)
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 #parser.add_argument("-live", "--live", help="Show all live match of the day", action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
