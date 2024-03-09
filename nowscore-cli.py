@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-
 #Now score version
 version=0.39
 
@@ -467,6 +466,12 @@ class Winmenu:
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
         curses.init_pair(5, curses.COLOR_GREEN, curses.COLOR_BLACK)
         curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        #pair color per segnalazione GOAL
+        curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLUE)
+        #pair color per segnalazione Yellow Card
+        curses.init_pair(8,curses.COLOR_YELLOW, curses.COLOR_BLUE)
+        #pai color per segnalazione Red Card
+        curses.init_pair(8,curses.COLOR_RED, curses.COLOR_BLUE)
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+3)<height else height-3
@@ -543,7 +548,14 @@ class Winmenu:
                 footer_win.addstr(0,5,"PRESS 'q' to close")
                 table=self.tabulate_strings(data)
                 for r,line in enumerate(table):
+                    if "GOAL" in line:
+                        data_win.attron(curses.color_pair(7))
+                    elif "Yellow Card" in line:
+                        data_win.attron(curses.color_pair(8))
+                    elif "Red Card" in line:
+                        data_win.attron(curses.color_pair(9))
                     data_win.addstr(r+1,2,line)
+                    data_win.attroff(curses.color_pair(7))
                 data_win.refresh()
                 header_win.refresh()
                 footer_win.refresh()
