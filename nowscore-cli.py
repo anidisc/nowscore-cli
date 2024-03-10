@@ -261,12 +261,23 @@ class Prediction():
         analizza bene nel dettaglio i punti in classifica e i gol fatti generial e subiti 
         e fai attenzioni ai gol fatti in casa e subiti e quelli fatti fuori casa e subiti. 
         Le striscie di vittorie pareggi e sconfigge consecutive. Tieni conto anche della capacita di una squadra di fare punti 
-        in casa o fuori casa basandoti sulle statistiche.
+        in casa o fuori casa basandoti sulle statistiche. Calcola una media goal fuori casa e in casa di ogni 
+        squadra e basati anche su questo includi nella tua analisi generale delle possibilita'. Calcola una
+        media punti delle ultime partite giocate anche questo da tenere in conto.
         Cerca di dare un pronostico sul possbile esito 1 X 2 o 1X o X2 o se ulteriormente GG se credi
-        possano segnare entrambe le squadre o NG se non prevedi che una sqaudra possa segnare. O1.5 o O2.5
-        che sarebbe over 2,5 se segnano piu di 2 goals, analogamente U1,5 o U2,5. Anche piu pronostici
-        insieme ma cerca di essere dettagliato nella motivazione che ti spinge a credere
-        in quello che prevedi."""
+        possano segnare entrambe le squadre o NG se non prevedi che una sqaudra possa non segnare. O1.5 
+        se segnano piu di un gol in totale o piu di 2
+        che sarebbe over 2,5 o piu' O.3.5 etc. Analogamente U1,5 o U2,5 o U3,5 tipo se pensi
+        non facciano piu di 3 gol e via discorrendo. puoi anche combinare piu pronostici se 
+        pensi ci siano buono probabilita,
+        ma cerca di essere dettagliato nella motivazione che ti spinge a credere
+        in quello che prevedi. 
+        Basandoti sulle statistiche calcola la possibilita che la squadra di casa segni almeno 1 
+        gol e fai lo stesso con la squadra che gioca fuori casa, e se ce un alta probabilita oltre 
+        il 65% segnalalo.
+        Cerca sempre di tenerti cauto nelle previsioni ammeno che non 
+        credi di averne molte probabilita in quello che prevedi non ti sbilanciare troppo.
+        Azzanrda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi."""
         messages = [ {"role": "system", "content":content} ]
         message = f"""data questa classifica {prompt} fammi un pronostico 
         della partita tra {squadra1} contro {squadra2} """
@@ -694,7 +705,6 @@ class Winmenu:
                         break
             elif (key == ord("r") and self.isLive(options)):
                 menu_win.clear()
-                #self.events=get_match_list(self.events[selected].idleague)
                 return 1 #refresh code for now not used
             #set exit point
             elif key == ord("q"):
