@@ -13,7 +13,7 @@ from tabulate import tabulate
 import tabulate as tabulate2
 import openai
 import sys
-
+from types import SimpleNamespace
 
 #init curse to blessed way
 #import blessed
@@ -198,7 +198,7 @@ def get_statistic(id):
     querystring = {"fixture":id}
 
     headers = {
-        "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+        "X-RapidAPI-Key": apikey,
         "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
     }
 
@@ -221,7 +221,7 @@ def get_live_match():
     querystring = {"live":"all","timezone":"Europe/Rome"}
 
     headers = {
-        "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+        "X-RapidAPI-Key": apikey,
         "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"}
     response = requests.get(url, headers=headers, params=querystring)
 
@@ -230,6 +230,7 @@ def get_live_match():
 
     tab=json.loads(response.text)
     return tab["response"],remaining_calls
+
 
 #richiede all'avvio le prediction e le analisi comparative dell'evento ID
 class Prediction():
@@ -291,8 +292,44 @@ class Prediction():
         answer = chat.choices[0].message.content
         return answer
 
-                    
+#richiede quote per eventi nel campionato richiesto alla data richiesta
+def get_match_odds(idleague,date):
 
+    url = "https://api-football-v1.p.rapidapi.com/v3/odds"
+
+    querystring = {"league":idleague,
+                    "season":"2023",
+                    "date":date,
+                    "bookmaker":"6"}
+
+    headers = {
+        "X-RapidAPI-Key": apikey,
+        "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+    }
+
+    response = requests.get(url, headers=headers, params=querystring)
+    tab=json.loads(response.text)
+    odds=[]
+    for r in tab["response"]:
+        odds.append(Odds(r))
+    return odds
+
+#classe dati per odds     
+class Odds():
+    def __init__(self,response: dict) -> None:
+        #self.response=SimpleNamespace(**response)
+        self.bookmaker=response["bookmakers"][0]["name"]
+        self.league=SimpleNamespace(**response["league"])
+        self.fixture=SimpleNamespace(**response["fixture"])
+        # self.odd={"1":response["bookmakers"][0]["bets"][0]["values"][0]["odd"],
+        #           "X":response["bookmakers"][0]["bets"][0]["values"][1]["odd"],
+        #           "2":response["bookmakers"][0]["bets"][0]["values"][2]["odd"],
+        #           "GG":response["bookmakers"][0]["bets"][2]["values"][0]["odd"],
+        #           "NG":response["bookmakers"][0]["bets"][2]["values"][1]["odd"],
+        #           "1X":response["bookmakers"][0]["bets"][3]["values"][0]["odd"],
+        #           "12":response["bookmakers"][0]["bets"][3]["values"][1]["odd"],
+        #           "X2":response["bookmakers"][0]["bets"][3]["values"][2]["odd"]}
+        self.odd=dict(response["bookmakers"][0])
 
 
 # Leggi gli argomenti dalla riga di comando
@@ -528,10 +565,10 @@ class Winmenu:
             try:
                 footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - " 
                                   "'s' match-Stats - 'ENTER' data - 'p' Predictions Match - "
-                                  "'r' refresh")
+                                  "'r' refresh - 'o' odds")
             except:
                 footer_win.clear()
-                footer_win.addstr(0,3,"PRESS: 'q' - 'f' - 's' - 'p' ")
+                footer_win.addstr(0,3,"PRESS: 'q' - 'f' - 's' - 'p' -'r' - 'o'")
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
@@ -646,9 +683,6 @@ class Winmenu:
                         break
             #richiesta previsioni betting e confronto
             elif (key == ord("p") and (self.events[selected].status == "NS")):
-                #predictiontext="In questa classifica di Serie A, l'Inter è attualmente in testa con 69 punti dopo 26 partite, seguita dalla Juventus con 57 punti in 27 partite e dall'AC Milan con 56 punti in 27 partite. Guardando le statistiche, l'Inter ha la miglior difesa con solo 12 gol subiti e un attacco prolifico con 67 gol segnati. La Juventus ha una buona difesa ma ha subito più gol dell'Inter, mentre l'AC Milan ha un buon equilibrio tra attacco e difesa."
-                #textjustify=self.giustifica_testo(testoprova,50)
-                #pred=Prediction(self.events[selected].idfixture).gpt_call()
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(5))
                 header_win.addstr(0,3,f"prediction STAT: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
@@ -657,7 +691,7 @@ class Winmenu:
                 footer_win.bkgd(curses.color_pair(5))
                 footer_win.addstr(0,3,"PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
                 footer_win.refresh()
-                pred_win=curses.newwin(10,width-2,2,2)
+                pred_win=curses.newwin(17,width-2,2,2)
                 pred_win.box()
                 pred_win.bkgd(curses.color_pair(5))
                 pred_win_x,pred_win_y=pred_win.getmaxyx()
@@ -703,6 +737,39 @@ class Winmenu:
                         pred_win.erase()
                         screen.clear()
                         break
+            elif (key == ord("o")):
+                #tab_odds=get_match_odds(self.events[selected].idleague,self.events[selected].date)
+                tab_odds=get_match_odds(135,"2024-03-10")
+                # odds_win=curses.newwin(len(tab_odds)+3, width-5, 4, 4)
+                # odds_win.box()
+                # odds_win.bkgd(curses.color_pair(6))
+                # header_win.clear()
+                # header_win.bkgd(curses.color_pair(6))
+                # header_win.addstr(0, 5, f"Odds for {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                # header_win.refresh()
+                # footer_win.clear()
+                # footer_win.bkgd(curses.color_pair(6))
+                # footer_win.addstr(0, 5, "PRESS 'q' to close")
+                # footer_win.refresh()
+                screen.clear()
+                curses.endwin()
+                print(tab_odds[0].fixture.id)
+                print(tab_odds[0].odd)
+                exit()
+                # table=self.tabulate_strings(tab_odds)
+                # for r,line in enumerate(table):
+                #     odds_win.addstr(r+1, 2, line)
+                #     odds_win.refresh()
+                #     header_win.refresh()
+                #     footer_win.refresh()
+                # odds_win.addstr(1, 2, tab_odds[0].league.id) #home
+                # odds_win.refresh()
+                # while True:
+                #     pausekey=screen.getch() #fa una pausa
+                #     if pausekey==ord("q"):
+                #         odds_win.erase()
+                #         screen.clear()
+                #         break
             elif (key == ord("r") and self.isLive(options)):
                 menu_win.clear()
                 return 1 #refresh code for now not used
