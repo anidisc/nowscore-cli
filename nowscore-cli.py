@@ -373,6 +373,9 @@ class Match:
         #proprietá globali di statisthe eventi
         self.homestat=None
         self.awaystat=None
+        #propieta che popola l'evento con un altra classe dall'esterno che si 
+        #occupera delle statistiche
+        self.odd=None
 
     #metodo che scarica gli eventi del match.
     def flow_events(self):
@@ -737,39 +740,39 @@ class Winmenu:
                         pred_win.erase()
                         screen.clear()
                         break
+            #carica le quote per tutti gli eventi selezionati
             elif (key == ord("o")):
-                #tab_odds=get_match_odds(self.events[selected].idleague,self.events[selected].date)
-                tab_odds=get_match_odds(135,"2024-03-10")
-                # odds_win=curses.newwin(len(tab_odds)+3, width-5, 4, 4)
-                # odds_win.box()
-                # odds_win.bkgd(curses.color_pair(6))
-                # header_win.clear()
-                # header_win.bkgd(curses.color_pair(6))
-                # header_win.addstr(0, 5, f"Odds for {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
-                # header_win.refresh()
-                # footer_win.clear()
-                # footer_win.bkgd(curses.color_pair(6))
-                # footer_win.addstr(0, 5, "PRESS 'q' to close")
-                # footer_win.refresh()
-                screen.clear()
-                curses.endwin()
-                print(tab_odds[0].fixture.id)
-                print(tab_odds[0].odd)
-                exit()
-                # table=self.tabulate_strings(tab_odds)
-                # for r,line in enumerate(table):
-                #     odds_win.addstr(r+1, 2, line)
-                #     odds_win.refresh()
-                #     header_win.refresh()
-                #     footer_win.refresh()
-                # odds_win.addstr(1, 2, tab_odds[0].league.id) #home
-                # odds_win.refresh()
-                # while True:
-                #     pausekey=screen.getch() #fa una pausa
-                #     if pausekey==ord("q"):
-                #         odds_win.erase()
-                #         screen.clear()
-                #         break
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(6))
+                header_win.addstr(0, 5, f"Odds Loading...")
+                header_win.refresh()
+                odds_win=curses.newwin(3, width-5, 5, 10)
+                odds_win.box()
+                odds_win.bkgd(curses.color_pair(6))
+                odds_win.addstr(1, 2, "LOADING ALL SELECTED ODDS...")
+                odds_win.refresh()
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(6))
+                footer_win.addstr(0, 5, "PRESS 'q' to close")
+                footer_win.refresh()
+                #load odds 
+                tab_odds=get_match_odds(self.events[selected].idleague, datetime.date.today())
+                for todds in tab_odds:
+                    for ievents in range(len(self.events)):
+                        if self.events[ievents].idfixture==todds.fixture.id:
+                            self.events[ievents].odd=todds.odd
+                            break
+                odds_win.clear()
+                odds_win.box()
+                odds_win.addstr(1, 2, "LOADED!")
+                odds_win.refresh()                                
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        odds_win.erase()
+                        screen.clear()
+                        break
+            #refresh option            
             elif (key == ord("r") and self.isLive(options)):
                 menu_win.clear()
                 return 1 #refresh code for now not used
