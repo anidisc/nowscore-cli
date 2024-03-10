@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version=0.39
+version=0.40
 
 import argparse
 import datetime
@@ -451,6 +451,22 @@ class Winmenu:
             righe.append(" ".join(riga_corrente))
         
         return righe
+    #definiamo una funzione islive che stabilisce se "1H" o "2H" sono presenti nella lista di options
+    #per tanto esiste un evento live in corso
+    def isLive(self,lista_di_stringhe):
+        # Parole chiave da cercare
+        parole_chiave = ["1H", "2H"]    
+        # Itera attraverso la lista di stringhe
+        for stringa in lista_di_stringhe:
+            # Normalizza le stringhe a maiuscole per rendere la ricerca insensibile al maiuscolo/minuscolo
+            stringa_normalizzata = stringa.upper()
+            # Verifica la presenza delle parole chiave
+            for parola in parole_chiave:
+                if parola in stringa_normalizzata:
+                    return True  # Restituisce True al primo ritrovamento
+        # Se nessuna delle parole chiave viene trovata, restituisce False
+        return False
+
     #display menu della lista eventi e ne processa le varie sotto-opzioni
     def menu(self):
                 
@@ -676,10 +692,10 @@ class Winmenu:
                         pred_win.erase()
                         screen.clear()
                         break
-            elif key == ord("r"): #repeat and refresh
+            elif (key == ord("r") and self.isLive(options)):
                 menu_win.clear()
                 #self.events=get_match_list(self.events[selected].idleague)
-                return 0
+                return 1 #refresh code for now not used
             #set exit point
             elif key == ord("q"):
                 menu_win.erase()
