@@ -495,11 +495,13 @@ class Winmenu:
             #main box menu
             menu_win = curses.newwin(seth, setw, 1, 5)
             menu_win.box()
-            #footer stricia messaggi di aiuto
+            #footer stricia messaggi di aiutoq
             footer_win=curses.newwin(1,width,height-1,0)
             footer_win.bkgd(curses.color_pair(2))
             try:
-                footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - 's' match-Stats - 'ENTER' data - 'p' Predictions Match")
+                footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - " 
+                                  "'s' match-Stats - 'ENTER' data - 'p' Predictions Match - "
+                                  "'r' refresh")
             except:
                 footer_win.clear()
                 footer_win.addstr(0,3,"PRESS: 'q' - 'f' - 's' - 'p' ")
@@ -674,18 +676,10 @@ class Winmenu:
                         pred_win.erase()
                         screen.clear()
                         break
-                    #pred_win.refresh()
-                    #header_win.refresh()
-                    #footer_win.refresh()
-                # while True:
-                #     pausekey=screen.getch() #fa una pausa
-                #     if pausekey==ord("q"):
-                #         pred_win.erase()
-                #         screen.clear()
-                #         #screen.refresh()
-                #         break       
-                            
-
+            elif key == ord("r"): #repeat and refresh
+                menu_win.clear()
+                #self.events=get_match_list(self.events[selected].idleague)
+                return 0
             #set exit point
             elif key == ord("q"):
                 menu_win.erase()
@@ -744,34 +738,35 @@ if (args.league!=None) and (args.league.upper() in scl):
         else:
             tdeltafrom=datetime.date.today()+datetime.timedelta(tdelta)
             tdeltato=datetime.date.today()
-        #verifica se viene invocata la funzione livescore di tutti i match 
-        if (args.league.upper()=="LIVE"):
-            p,rem=get_live_match()
-        else:
-            p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
-        ev=[]
-        for m in p:
-            #carichiamo i dati del match nella classe
-            ev.append(Match(m["league"]["id"],m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
-                        m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
-                        m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
-                        m["fixture"]["referee"],m["fixture"]["venue"]["name"],
-                        m["fixture"]["venue"]["city"],m["league"]["country"]))
-            # voglio sapere quale e il response delléxtratime di un match 
-            ev.sort(key=lambda match: match.country)
+        
+        selection=0
+        while selection != -1:
 
-        try:
-            selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
-            if selection!=-1:
-                #carichiamo gli eventi
-                pass
+            #verifica se viene invocata la funzione livescore di tutti i match 
+            if (args.league.upper()=="LIVE"):
+                p,rem=get_live_match()
             else:
-                #print(ev[1].flow_events())
-                print(f"NOWScore {version} richiesta di uscita dal programma!")
-                exit()
-        except ValueError as error:
-            print(f"errore {error}")
-            key=input("non ci sono eventi da visualizzare...(press any key)")
+                p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
+            ev=[]
+            for m in p:
+                #carichiamo i dati del match nella classe
+                ev.append(Match(m["league"]["id"],m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
+                            m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
+                            m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
+                            m["fixture"]["referee"],m["fixture"]["venue"]["name"],
+                            m["fixture"]["venue"]["city"],m["league"]["country"]))
+                # voglio sapere quale e il response delléxtratime di un match 
+                ev.sort(key=lambda match: match.country)
+
+            try:
+                selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
+                if selection == -1:
+                    print(f"NOWScore {version} richiesta di uscita dal programma!")
+                    exit()
+            except ValueError as error:
+                print(f"errore {error}")
+                key=input("non ci sono eventi da visualizzare...(press any key)")
+                break
 
 try:
     pass
