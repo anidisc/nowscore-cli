@@ -9,6 +9,7 @@ import requests
 import json
 import curses
 from datetime import datetime as dateT
+import time
 from tabulate import tabulate
 import tabulate as tabulate2
 import openai
@@ -255,7 +256,7 @@ class Prediction():
                          "away":tab["comparison"]["total"]["away"]}
         
     #create a method that receive as parameter a text and call api openai whit apikey variable and retur a text as output
-    def gpt_call(prompt,squadra1,squadra2):
+    def gpt_call(prompt,squadra1,squadra2,odds):
         openai.api_key = openaikey
         content=f"""Sei un analist di calcio e analizzi le partite nei dettagli, cerca di fornire un prononisto
         in base alla classifica delle due sqadre che si incontrano ovvero {squadra1} contro {squadra2}
@@ -276,9 +277,20 @@ class Prediction():
         Basandoti sulle statistiche calcola la possibilita che la squadra di casa segni almeno 1 
         gol e fai lo stesso con la squadra che gioca fuori casa, e se ce un alta probabilita oltre 
         il 65% segnalalo.
+        Tendi ad evitare di suggeriri risultati fissi come 1 o X o 2 singoli, a meno che non altamente probabili, ma 
+        cerca di essere prudente quando coprendo i pronostici con doppie tipo 1X o X2 sempre se abbastanza probabili. 
+        Ma tendenzialmente suggerisci spesso
+        risultati sui gol e sul numero di gol o sul possibile gol di una squadra che gioca, sempre tenendo 
+        conto delle difese avversarie e della media di subire gol nel rispettivo campo.
         Cerca sempre di tenerti cauto nelle previsioni ammeno che non 
         credi di averne molte probabilita in quello che prevedi non ti sbilanciare troppo.
-        Azzanrda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi."""
+        Azzarda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi."""
+        if odds != None:
+            content+=f"""Allegando anche questa lista json delle quotazioni della partita, {odds},  cerca di suggerire una possibile
+                        vantaggiosa che tu pensi sia possibile e dammi sempre in oltre le quotazioni di tutti i risultati 
+                        che mi suggerisci. Se riesci prendi in cosiderazione anche risultati di di vittorie di una squadra o 
+                        di un altra con piu goal di scarto e dammi le quotazioni vantaggiose sempre se ce
+                        ne puo essere la progabilita"""
         messages = [ {"role": "system", "content":content} ]
         message = f"""data questa classifica {prompt} fammi un pronostico 
         della partita tra {squadra1} contro {squadra2} """
@@ -694,11 +706,12 @@ class Winmenu:
                 footer_win.bkgd(curses.color_pair(5))
                 footer_win.addstr(0,3,"PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
                 footer_win.refresh()
-                pred_win=curses.newwin(17,width-2,2,2)
+                pred_win=curses.newwin(15,width-2,2,2)
                 pred_win.box()
                 pred_win.bkgd(curses.color_pair(5))
                 pred_win_x,pred_win_y=pred_win.getmaxyx()
-
+                pred_win.addstr(1, 1, f"Analize Match...: {self.events[selected].teamhome} vs {self.events[selected].teamaway}")
+                pred_win.refresh()
                 #inizia la predizione
                 if self.classifica == None :
                     list_stand,rem=get_standing_season(self.events[selected].idleague)
@@ -713,7 +726,8 @@ class Winmenu:
                             ' '.join(t["form"]),t["status"]]
                         self.classifica.append(row)
                 tabclassifica=tabulate(self.classifica,headers="firstrow")
-                predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway)
+
+                predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
                 predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
 
                 altezza = min(len(predictiontext), pred_win_x - 2)
@@ -741,12 +755,12 @@ class Winmenu:
                         screen.clear()
                         break
             #carica le quote per tutti gli eventi selezionati
-            elif (key == ord("o")):
+            elif (key == ord("o") and (self.events[selected].status == "NS")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(6))
                 header_win.addstr(0, 5, f"Odds Loading...")
                 header_win.refresh()
-                odds_win=curses.newwin(3, width-5, 5, 10)
+                odds_win=curses.newwin(3, width-2, 2, 2)
                 odds_win.box()
                 odds_win.bkgd(curses.color_pair(6))
                 odds_win.addstr(1, 2, "LOADING ALL SELECTED ODDS...")
@@ -756,11 +770,19 @@ class Winmenu:
                 footer_win.addstr(0, 5, "PRESS 'q' to close")
                 footer_win.refresh()
                 #load odds 
+                pl=0
                 tab_odds=get_match_odds(self.events[selected].idleague, datetime.date.today())
                 for todds in tab_odds:
                     for ievents in range(len(self.events)):
                         if self.events[ievents].idfixture==todds.fixture.id:
                             self.events[ievents].odd=todds.odd
+                            pl+=1
+                            odds_win.clear()
+                            odds_win.box()
+                            odds_win.addstr(1, 2, f"LOADING ODDS... {pl}/{len(self.events)}")
+                            odds_win.refresh()
+                            #pause 1 second
+                            time.sleep(1)
                             break
                 odds_win.clear()
                 odds_win.box()
