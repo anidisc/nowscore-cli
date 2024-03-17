@@ -284,7 +284,9 @@ class Prediction():
         conto delle difese avversarie e della media di subire gol nel rispettivo campo.
         Cerca sempre di tenerti cauto nelle previsioni ammeno che non 
         credi di averne molte probabilita in quello che prevedi non ti sbilanciare troppo.
-        Azzarda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi."""
+        Azzarda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi.
+        Riassumi sempre tutti i tuoi pronostici alla fine in un tag finele tra parentesi [] esempio se dici 1X e possibile GG scrivi PRONOSTICO[1X+GG] o 
+        sempre esempio PRONOSTICO[X2+NG+U2.5] oppure ancora PRONOSTICO[X] in modo che possa recuperali nel testo. Grazie contro su si te"""
         if odds != None:
             content+=f"""Allegando anche questa lista json delle quotazioni della partita, {odds},  cerca di suggerire una possibile
                         vantaggiosa che tu pensi sia possibile e dammi sempre in oltre le quotazioni di tutti i risultati 
