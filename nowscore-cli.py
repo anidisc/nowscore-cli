@@ -285,8 +285,9 @@ class Prediction():
         Cerca sempre di tenerti cauto nelle previsioni ammeno che non 
         credi di averne molte probabilita in quello che prevedi non ti sbilanciare troppo.
         Azzarda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi.
-        Riassumi sempre tutti i tuoi pronostici alla fine in un tag finele tra parentesi [] esempio se dici 1X e possibile GG scrivi PRONOSTICO[1X+GG] o 
-        sempre esempio PRONOSTICO[X2+NG+U2.5] oppure ancora PRONOSTICO[X] in modo che possa recuperali nel testo. Grazie contro su si te"""
+        Rifai questo processo almeno 10 volte e poi fai uma media di tutte le tue analisi che ti sono uscite.
+        Riassumi sempre tutti i tuoi pronostici alla fine in un tag finele tra parentesi [] esempio se dici 1X e possibile GG scrivi P[1X+GG] o 
+        sempre esempio P[X2+NG+U2.5] oppure ancora P[X] in modo che possa recuperali nel testo. Grazie contro su si te"""
         if odds != None:
             content+=f"""Allegando anche questa lista json delle quotazioni della partita, {odds},  cerca di suggerire una possibile
                         vantaggiosa che tu pensi sia possibile e dammi sempre in oltre le quotazioni di tutti i risultati 
@@ -305,6 +306,18 @@ class Prediction():
             )
         answer = chat.choices[0].message.content
         return answer
+    #definiamo un medoto che estre il pronostico e lo sintetizza 
+    def compactOdds(testo):
+        inizio = testo.find("[")
+        fine = testo.find("]")
+        
+        if inizio != -1 and fine != -1:
+            testo_tra_parentesi = testo[inizio + 1 : fine]
+            return testo_tra_parentesi
+        else:
+            return None
+        
+
 
 #richiede quote per eventi nel campionato richiesto alla data richiesta
 def get_match_odds(idleague,date):
@@ -390,6 +403,7 @@ class Match:
         #propieta che popola l'evento con un altra classe dall'esterno che si 
         #occupera delle statistiche
         self.odd=None
+        self.pronostic=""
 
     #metodo che scarica gli eventi del match.
     def flow_events(self):
@@ -445,11 +459,11 @@ class Winmenu:
         self.title=title
         self.classifica=None
     # Definisci una funzione che prende una lista di liste di # Definisci una funzione che prende una lista di liste di stringhe come parametro
-    def formatta_liste(self):
+    def formatta_liste(self,eventi):
         liste=[]
-        for event in self.events:
+        for event in eventi:
             liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
-                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country])
+                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country," ",event.pronostic])
         # Crea una lista vuota per memorizzare le liste formattate
         liste_formattate = []
         # Trova la lunghezza della parola più lunga nelle prime due posizioni di tutte le liste
@@ -535,7 +549,7 @@ class Winmenu:
     #display menu della lista eventi e ne processa le varie sotto-opzioni
     def menu(self):
                 
-        options=self.formatta_liste()
+        options=self.formatta_liste(self.events)
         screen=curses.initscr()
         curses.curs_set(0)
         curses.noecho()
@@ -552,11 +566,11 @@ class Winmenu:
         #pair color per segnalazione Yellow Card
         curses.init_pair(8,curses.COLOR_YELLOW, curses.COLOR_BLUE)
         #pai color per segnalazione Red Card
-        curses.init_pair(8,curses.COLOR_RED, curses.COLOR_BLUE)
+        curses.init_pair(9,curses.COLOR_RED, curses.COLOR_BLUE)
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+3)<height else height-3
-        setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2
+        setw=len(max(options))+15 if (len(max(options))+15<width-2) else width-2
 
         menu_items = len(options)
         max_items = height - 5
@@ -637,8 +651,9 @@ class Winmenu:
                         data_win.attron(curses.color_pair(8))
                     elif "Red Card" in line:
                         data_win.attron(curses.color_pair(9))
+                    else:
+                        data_win.attron(curses.color_pair(2)) #setta colore verde sullo sfondo
                     data_win.addstr(r+1,2,line)
-                    data_win.attroff(curses.color_pair(7))
                 data_win.refresh()
                 header_win.refresh()
                 footer_win.refresh()
@@ -731,6 +746,8 @@ class Winmenu:
 
                 predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
                 predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
+                self.events[selected].pronostic=Prediction.compactOdds(predizione)
+                options=self.formatta_liste(self.events)
 
                 altezza = min(len(predictiontext), pred_win_x - 2)
                 start_index=0
