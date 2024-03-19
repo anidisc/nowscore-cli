@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version=0.40
+version=0.41
 
 import argparse
 import datetime
@@ -454,7 +454,7 @@ class Match:
         for i1,i2 in zip(f1,f2):
             list_stat.append([i1.type,"|",i1.value,i2.value])
         return list_stat
-
+#salva la predizione nei file di archivio
 def upload_save_prediction(idmatch,prediction):
     #carichiamo il file se esiste
     if not(os.path.exists(predictionfile)): # se non esiste
@@ -476,7 +476,22 @@ def upload_save_prediction(idmatch,prediction):
                 load.append({"id":idmatch,"pred":prediction})
         with open(predictionfile, "w") as file:        
             json.dump(load,file,indent=4)
-
+#carica predizioni dallo storico salvato
+def load_saved_prediction(event):
+    try:
+        with open(predictionfile, "r") as file:
+            load=json.load(file)
+            if isinstance(load, dict):
+                load = [load]  # Se è un dizionario, convertilo in una lista
+            for p in load:
+                if p["id"]==event.idfixture:
+                    event.pronostic=p["pred"]
+        
+    except FileNotFoundError:
+        pass  #non fare nulla se il file non esiste
+    
+    return event
+    
             
 class Winmenu:
     def __init__(self,events:list,title="select options"):
@@ -487,6 +502,7 @@ class Winmenu:
     def formatta_liste(self,eventi):
         liste=[]
         for event in eventi:
+            event=load_saved_prediction(event)
             liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
                        event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country," ",event.pronostic])
         # Crea una lista vuota per memorizzare le liste formattate
@@ -572,8 +588,7 @@ class Winmenu:
         return False
 
     #display menu della lista eventi e ne processa le varie sotto-opzioni
-    def menu(self):
-                
+    def menu(self):        
         options=self.formatta_liste(self.events)
         screen=curses.initscr()
         curses.curs_set(0)
