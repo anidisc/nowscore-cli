@@ -5,6 +5,7 @@ version=0.40
 
 import argparse
 import datetime
+import os
 import requests
 import json
 import curses
@@ -25,6 +26,8 @@ parser = argparse.ArgumentParser(description="NOWScore Soccer Events CLI")
 #select apikey
 apikey1file="rapidkey1.key"
 openaikeyfile="openai.key"
+
+predictionfile="predictions_history.json"
 
 # Apri il file in modalità lettura
 with open(apikey1file, 'r') as file:
@@ -452,7 +455,29 @@ class Match:
             list_stat.append([i1.type,"|",i1.value,i2.value])
         return list_stat
 
+def upload_save_prediction(idmatch,prediction):
+    #carichiamo il file se esiste
+    if not(os.path.exists(predictionfile)): # se non esiste
+        load={"id":idmatch,"pred":prediction}
+        with open(predictionfile,"w") as file:
+            json.dump(load,file)
+    else:
+        with open(predictionfile,"r") as file:
+            load=json.load(file)
+            if isinstance(load, dict):
+                load = [load]  # Se è un dizionario, convertilo in una lista
+            find=False
+            for p in load:
+                if p["id"]==idmatch:  
+                    p["pred"]=prediction
+                    find=True
+                    break
+            if not(find): #il record e viene aggiunto al file
+                load.append({"id":idmatch,"pred":prediction})
+        with open(predictionfile, "w") as file:        
+            json.dump(load,file,indent=4)
 
+            
 class Winmenu:
     def __init__(self,events:list,title="select options"):
         self.events=events
@@ -747,6 +772,8 @@ class Winmenu:
                 predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
                 predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
                 self.events[selected].pronostic=Prediction.compactOdds(predizione)
+                #salva/aggiorna la predizione sul server
+                upload_save_prediction(self.events[selected].idfixture,self.events[selected].pronostic)
                 options=self.formatta_liste(self.events)
 
                 altezza = min(len(predictiontext), pred_win_x - 2)
