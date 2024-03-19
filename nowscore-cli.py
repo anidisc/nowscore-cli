@@ -407,6 +407,7 @@ class Match:
         #occupera delle statistiche
         self.odd=None
         self.pronostic=""
+        self.analize="" #testo della analisi del match
 
     #metodo che scarica gli eventi del match.
     def flow_events(self):
@@ -455,10 +456,10 @@ class Match:
             list_stat.append([i1.type,"|",i1.value,i2.value])
         return list_stat
 #salva la predizione nei file di archivio
-def upload_save_prediction(idmatch,prediction):
+def upload_save_prediction(idmatch,prediction,analize):
     #carichiamo il file se esiste
     if not(os.path.exists(predictionfile)): # se non esiste
-        load={"id":idmatch,"pred":prediction}
+        load={"id":idmatch,"pred":prediction,"analize":analize}
         with open(predictionfile,"w") as file:
             json.dump(load,file)
     else:
@@ -470,10 +471,11 @@ def upload_save_prediction(idmatch,prediction):
             for p in load:
                 if p["id"]==idmatch:  
                     p["pred"]=prediction
+                    p["analize"]=analize
                     find=True
                     break
             if not(find): #il record e viene aggiunto al file
-                load.append({"id":idmatch,"pred":prediction})
+                load.append({"id":idmatch,"pred":prediction,"analize":analize})
         with open(predictionfile, "w") as file:        
             json.dump(load,file,indent=4)
 #carica predizioni dallo storico salvato
@@ -486,6 +488,7 @@ def load_saved_prediction(event):
             for p in load:
                 if p["id"]==event.idfixture:
                     event.pronostic=p["pred"]
+                    event.analize=p["analize"]
         
     except FileNotFoundError:
         pass  #non fare nulla se il file non esiste
@@ -607,6 +610,7 @@ class Winmenu:
         curses.init_pair(8,curses.COLOR_YELLOW, curses.COLOR_BLUE)
         #pai color per segnalazione Red Card
         curses.init_pair(9,curses.COLOR_RED, curses.COLOR_BLUE)
+        curses.init_pair(10, curses.COLOR_CYAN, curses.COLOR_BLACK)
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+3)<height else height-3
@@ -785,10 +789,11 @@ class Winmenu:
                 tabclassifica=tabulate(self.classifica,headers="firstrow")
 
                 predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
+                self.events[selected].analize=predizione
                 predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
                 self.events[selected].pronostic=Prediction.compactOdds(predizione)
                 #salva/aggiorna la predizione sul server
-                upload_save_prediction(self.events[selected].idfixture,self.events[selected].pronostic)
+                upload_save_prediction(self.events[selected].idfixture,self.events[selected].pronostic,predizione)
                 options=self.formatta_liste(self.events)
 
                 altezza = min(len(predictiontext), pred_win_x - 2)
@@ -859,6 +864,48 @@ class Winmenu:
             elif (key == ord("r") and self.isLive(options)):
                 menu_win.clear()
                 return 1 #refresh code for now not used
+            #read analized match if exist
+            elif (key == ord("a") and (self.events[selected].analize != "")):
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(7))
+                header_win.addstr(0, 3, f"Analized Match between {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                header_win.refresh()
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(7))
+                footer_win.addstr(0, 3, "PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
+                footer_win.refresh()
+                pred_win=curses.newwin(15,width-2,2,2)
+                pred_win.box()
+                pred_win.bkgd(curses.color_pair(10))
+                pred_win_x,pred_win_y=pred_win.getmaxyx()
+                pred_win.refresh()
+                predictiontext=self.giustifica_testo(self.events[selected].analize,pred_win_y-4)
+                #options=self.formatta_liste(self.events)
+
+                altezza = min(len(predictiontext), pred_win_x - 2)
+                start_index=0
+                while True:
+                    # Visualizza le righe correnti
+                    for i in range(altezza):
+                        if start_index + i < len(predictiontext):
+                            pred_win.addstr(i + 1, 1, predictiontext[start_index + i][:width - 4])
+                    pred_win.refresh()
+                    # Attendi l'input dell'utente
+                    tasto = screen.getch()
+
+                    # Gestisci gli input delle frecce
+                    if tasto == curses.KEY_UP:
+                        start_index = max(0, start_index - 1)
+                        pred_win.clear()
+                        pred_win.box()
+                    elif tasto == curses.KEY_DOWN:
+                        start_index = min(len(predictiontext) - altezza, start_index + 1)
+                        pred_win.clear()
+                        pred_win.box()
+                    elif tasto == ord('q'):  # Per uscire, premi 'q'
+                        pred_win.erase()
+                        screen.clear()
+                        break
             #set exit point
             elif key == ord("q"):
                 menu_win.erase()

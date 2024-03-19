@@ -1,26 +1,17 @@
 [
     {
-        "id": 1035464,
-        "pred": "P[1X+O1.5+GG"
+        "id": 1052543,
+        "pred": "1+O1.5+NG",
+        "analize": "Guardando la classifica possiamo notare che il Bologna si trova al 4\u00b0 posto con 54 punti, mentre la Salernitana \u00e8 all'ultimo posto con solo 14 punti in 29 partite. Il Bologna ha segnato 42 gol e ne ha subiti 25, con una media di 1.45 gol fatti a partita e 0.86 subiti. In casa ha segnato 26 gol e ne ha subiti 8. Dall'altra parte, la Salernitana ha segnato 23 gol e ne ha subiti 59, con una media di 0.79 gol fatti a partita e 2.03 subiti. Fuori casa ha segnato 13 gol e ne ha subiti 30.\n\nGuardando le ultime partite giocate, il Bologna ha registrato due vittorie e tre sconfitte, mentre la Salernitana ha ottenuto una vittoria, quattro pareggi e una sconfitta. \n\nConsiderando questi dati, posso prevedere che il Bologna abbia una buona probabilit\u00e0 di vincere la partita contro la Salernitana. La differenza di punti e la differenza di gol fatti e subiti tra le due squadre sono abbastanza significative. \n\nPronostico: 1 (Bologna vince la partita)\n\nQuanto ai goal, considerando che il Bologna ha segnato in media 1.45 gol a partita e che la Salernitana ha subito in media 2.03 gol a partita, \u00e8 probabile che il Bologna segni almeno 1 gol nella partita. D'altra parte, la Salernitana potrebbe avere difficolt\u00e0 a segnare contro la difesa del Bologna, quindi potrebbe non segnare.\n\nPronostico sul numero di gol: O1.5 (ci saranno almeno 2 gol totali nella partita) e NG (la Salernitana potrebbe non segnare)\n\n[1+O1.5+NG]"
     },
     {
-        "id": 1035465,
-        "pred": "1 + O2.0"
+        "id": 1052544,
+        "pred": "X+U2.5",
+        "analize": "Per la partita tra Cagliari e Verona, entrambe le squadre si trovano attualmente in fondo alla classifica con lo stesso numero di punti, 26. Entrambe le squadre hanno una certa abitudine a pareggiare, con Cagliari che ha pareggiato 8 partite e Verona che ha pareggiato 8 partite. Tuttavia, Cagliari ha segnato pi\u00f9 gol rispetto a Verona (29 contro 26), ma ha anche subito pi\u00f9 gol (50 contro 39).\n\nGuardando alle performance in casa e fuori casa, Cagliari ha ottenuto 5 vittorie, 4 pareggi e 5 sconfitte in casa, segnando 20 gol e subendone 24. Verona, d'altra parte, ha ottenuto 4 vittorie, 5 pareggi e 5 sconfitte in trasferta, segnando 16 gol e subendone 19.\n\nEntrambe le squadre arrivano alla partita con una striscia di due pareggi consecutivi, quindi potrebbero essere abbastanza equilibrate in termini di forma attuale.\n\nConsiderando che entrambe le squadre sono alla ricerca di punti preziosi per evitare la retrocessione, potremmo attendere una partita tattica con pochi gol. Entrambe le squadre potrebbero essere pi\u00f9 caute nell'approccio a questa partita, cercando di evitare errori difensivi.\n\nPertanto, il mio pronostico per la partita tra Cagliari e Verona sarebbe: P[X+U2.5] \n\nInoltre, c'\u00e8 un'alta probabilit\u00e0 che entrambe le squadre segnino durante la partita, considerando le fragilit\u00e0 difensive di entrambe le squadre."
     },
     {
-        "id": 1035466,
-        "pred": "P[2 + O1.5"
-    },
-    {
-        "id": 1035469,
-        "pred": "O2.5+GG"
-    },
-    {
-        "id": 1035467,
-        "pred": "1 + GG + O2.5"
-    },
-    {
-        "id": 1052548,
-        "pred": "2"
+        "id": 1052545,
+        "pred": " P[X2+O1.5",
+        "analize": "La Fiorentina si trova all'ottavo posto in classifica con 43 punti in 28 partite giocate. La squadra di Firenze ha vinto 12 partite, pareggiate 7 e perse 9. Ha segnato 41 gol e ne ha subiti 32. In casa, ha vinto 8 partite, pareggiate 3 e perse 3, segnando 26 gol e subendone 15. Nelle ultime 5 partite ha ottenuto 2 vittorie, 2 pareggi e 1 sconfitta.\n\nDall'altro lato, l'AC Milan si trova al secondo posto in classifica con 62 punti in 29 partite giocate. La squadra rossonera ha vinto 19 partite, pareggiate 5 e perse 5. Ha segnato 55 gol e ne ha subiti 33. In trasferta, ha vinto 9 partite, pareggiate 3 e perse 3, segnando 32 gol e subendone 25. Nelle ultime 5 partite ha ottenuto 3 vittorie, 1 pareggio e 1 sconfitta.\n\nGuardando le statistiche e i trend delle due squadre, si pu\u00f2 notare che l'AC Milan ha dimostrato una maggiore stabilit\u00e0 rispetto alla Fiorentina e attualmente si trova in una posizione di classifica superiore. L'AC Milan ha una media goal superiore rispetto alla Fiorentina sia in generale che in trasferta. \n\nPronostico:\nBasandoci sulle statische e sul momento attuale delle due squadre, \u00e8 probabile che l'AC Milan abbia maggiori possibilit\u00e0 di vincere la partita contro la Fiorentina. Considerando anche la propensione delle due squadre a segnare, si potrebbe prevedere una partita con almeno 2 gol totali. \n\nPronostico Finale: X2+O1.5\n\n[ P[X2+O1.5] ]"
     }
 ]
