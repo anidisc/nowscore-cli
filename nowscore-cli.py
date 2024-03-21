@@ -58,6 +58,10 @@ sc={"SA":135,
     "SLD":119,
     "BLA":218,
     "SLG":9,
+    "J1":98,
+    "SAB":71,
+    "MLS":253,
+    "SPL":307,
     "LIVE":0}
 
 scext={"SA":"Italy Serie A",
@@ -76,31 +80,18 @@ scext={"SA":"Italy Serie A",
        "SLD":"Denmark Superlegue",
        "BLA":"Austria Bundeliga",
        "SLG":"Greek Super League",
+       "J1":"Japan J1 League",
+       "SAB":"Brazil Serie A",
+       "MLS":"USA Major League Soccer",
+       "SPL":"Saudi-Arabia Pro League",
        "LIVE":"Live all Match of the day"}
 
 scl=list(sc.keys()) #convertiamo il dizionario in lista in modo da poter meglio gestire
 sclv=list(scext.values())
 
 
-# Aggiungi i parametri opzionali con i loro nomi, descrizioni e valori predefiniti
-parser.add_argument("-l", "--league", help=f"""Show league options:
-                                              - {sclv[0]}={scl[0]}
-                                              - {sclv[1]}={scl[1]}
-                                              - {sclv[2]}={scl[2]}
-                                              - {sclv[3]}={scl[3]}
-                                              - {sclv[4]}={scl[4]}
-                                              - {sclv[5]}={scl[5]}
-                                              - {sclv[6]}={scl[6]}
-                                              - {sclv[7]}={scl[7]}
-                                              - {sclv[8]}={scl[8]}
-                                              - {sclv[9]}={scl[9]}
-                                              - {sclv[10]}={scl[10]}
-                                              - {sclv[11]}={scl[11]}
-                                              - {sclv[12]}={scl[12]}
-                                              - {sclv[13]}={scl[13]}
-                                              - {sclv[14]}={scl[14]}
-                                              - {sclv[15]}={scl[15]}
-                                              - {sclv[16]}={scl[16]}""", default=None)
+parser.add_argument("-l", "--league", help=f"""Show league options:{''.join([f"- {key}={value} " for key, value in zip(sclv, scl)])}""", default=None)
+
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 #parser.add_argument("-live", "--live", help="Show all live match of the day", action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
