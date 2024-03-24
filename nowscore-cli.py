@@ -235,7 +235,7 @@ class Prediction():
         querystring = {"fixture":self.idmatch}
 
         headers = {
-            "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+            "X-RapidAPI-Key": apikey,
             "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
         }
         response = requests.get(url, headers=headers, params=querystring)
@@ -342,14 +342,6 @@ class Odds():
         self.bookmaker=response["bookmakers"][0]["name"]
         self.league=SimpleNamespace(**response["league"])
         self.fixture=SimpleNamespace(**response["fixture"])
-        # self.odd={"1":response["bookmakers"][0]["bets"][0]["values"][0]["odd"],
-        #           "X":response["bookmakers"][0]["bets"][0]["values"][1]["odd"],
-        #           "2":response["bookmakers"][0]["bets"][0]["values"][2]["odd"],
-        #           "GG":response["bookmakers"][0]["bets"][2]["values"][0]["odd"],
-        #           "NG":response["bookmakers"][0]["bets"][2]["values"][1]["odd"],
-        #           "1X":response["bookmakers"][0]["bets"][3]["values"][0]["odd"],
-        #           "12":response["bookmakers"][0]["bets"][3]["values"][1]["odd"],
-        #           "X2":response["bookmakers"][0]["bets"][3]["values"][2]["odd"]}
         self.odd=dict(response["bookmakers"][0])
 
 
@@ -399,7 +391,8 @@ class Match:
         self.odd=None
         self.pronostic=""
         self.analize="" #testo della analisi del match
-
+        #regista la data in formato anno-mese-giorno valido per eventuali query
+        self.date_req_format=dateT.fromisoformat(datematch).strftime("%Y-%m-%d") # formato data valido per query
     #metodo che scarica gli eventi del match.
     def flow_events(self):
         list_event=get_events_match(self.idfixture)
@@ -630,11 +623,11 @@ class Winmenu:
             footer_win.bkgd(curses.color_pair(2))
             try:
                 footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - " 
-                                  "'s' match-Stats - 'ENTER' data - 'p' Predictions Match - "
-                                  "'r' refresh - 'o' odds")
+                                  "'s' match-Stats - 'ENTER' data - 'p' Predictions - "
+                                  "'r' Refresh - 'o' Odds - 'a' Analized")
             except:
                 footer_win.clear()
-                footer_win.addstr(0,3,"PRESS: 'q' - 'f' - 's' - 'p' -'r' - 'o'")
+                footer_win.addstr(0,3,"PRESS: 'q' - 'f' - 's' - 'p' -'r' - 'o' - 'a'")
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
@@ -828,7 +821,7 @@ class Winmenu:
                 footer_win.refresh()
                 #load odds 
                 pl=0
-                tab_odds=get_match_odds(self.events[selected].idleague, datetime.date.today())
+                tab_odds=get_match_odds(self.events[selected].idleague, self.events[selected].date_req_format)
                 for todds in tab_odds:
                     for ievents in range(len(self.events)):
                         if self.events[ievents].idfixture==todds.fixture.id:
