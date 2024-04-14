@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version=0.41
+version="0.41.1"
 
 import argparse
 import datetime
@@ -404,9 +404,22 @@ class Match:
         list_event=get_events_match(self.idfixture)
         tabellaeventi=[[self.teamhome,"",self.goalshome,"vs",self.goalsaway,"",self.teamaway]]
         for e in list_event:
-            match e["type"]:
-                case "Goal":
-                    e["detail"]="GOAL" if e["detail"]=="Normal Goal" else "Penalty/GOAL"
+            edetail=e["detail"]
+            if e["type"]=="Goal":
+                if e["detail"]=="Normal Goal":
+                    edetail="GOAL ⚽" 
+                elif e["detail"]=="Penalty":
+                    edetail="Penalty/GOAL ⚽"
+                elif e["detail"]=="Missed Penalty":
+                    edetail="Missed/Penalty ❌⚽️"
+                elif e["detail"]=="Own Goal":
+                    edetail="Own/Goal <=⚽️"
+            if e["type"]=="Var":
+                edetail="VAR: "+e["detail"]
+            if e["type"]=="subst":
+                edetail="🔄 "+str(e["detail"])
+    
+
             #aggiungi il tempo di recupero
             extratime=e["time"]["extra"] if e["time"]["extra"]!=None else 0
 
@@ -416,12 +429,12 @@ class Match:
                 dbrow=e["player"]["name"]
             if e["team"]["name"]==self.teamhome:
                 tabellaeventi.append([dbrow,
-                                    e["detail"],"",
+                                    edetail,"",
                                     str(e["time"]["elapsed"]+extratime),"","",""])
             if e["team"]["name"]==self.teamaway:
                 tabellaeventi.append(["","","",
                                     str(e["time"]["elapsed"]+extratime),"",
-                                    e["detail"],
+                                    edetail,
                                     dbrow])
         #return tabulate(tabellaeventi,headers="firstrow")
         return tabellaeventi
