@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.41.1"
+version="0.42"
 
 import argparse
 import datetime
@@ -256,38 +256,67 @@ class Prediction():
                          "away":tab["comparison"]["total"]["away"]}
         
     #create a method that receive as parameter a text and call api openai whit apikey variable and retur a text as output
-    def gpt_call(prompt,squadra1,squadra2,odds):
+    def gpt_call(prompt,squadra1,squadra2,odds,mode=1):
         openai.api_key = openaikey
-        content=f"""Sei un analist di calcio e analizzi le partite nei dettagli, cerca di fornire un prononisto
-        in base alla classifica delle due sqadre che si incontrano ovvero {squadra1} contro {squadra2}
-        analizza bene nel dettaglio i punti in classifica e i gol fatti generial e subiti 
-        e fai attenzioni ai gol fatti in casa e subiti e quelli fatti fuori casa e subiti. 
-        Le striscie di vittorie pareggi e sconfigge consecutive. Tieni conto anche della capacita di una squadra di fare punti 
-        in casa o fuori casa basandoti sulle statistiche. Calcola una media goal fuori casa e in casa di ogni 
-        squadra e basati anche su questo includi nella tua analisi generale delle possibilita'. Calcola una
-        media punti delle ultime partite giocate anche questo da tenere in conto.
-        Cerca di dare un pronostico sul possbile esito 1 X 2 o 1X o X2 o se ulteriormente GG se credi
-        possano segnare entrambe le squadre o NG se non prevedi che una sqaudra possa non segnare. O1.5 
-        se segnano piu di un gol in totale o piu di 2
-        che sarebbe over 2,5 o piu' O.3.5 etc. Analogamente U1,5 o U2,5 o U3,5 tipo se pensi
-        non facciano piu di 3 gol e via discorrendo. puoi anche combinare piu pronostici se 
-        pensi ci siano buono probabilita,
-        ma cerca di essere dettagliato nella motivazione che ti spinge a credere
-        in quello che prevedi. 
-        Basandoti sulle statistiche calcola la possibilita che la squadra di casa segni almeno 1 
-        gol e fai lo stesso con la squadra che gioca fuori casa, e se ce un alta probabilita oltre 
-        il 65% segnalalo.
-        Tendi ad evitare di suggeriri risultati fissi come 1 o X o 2 singoli, a meno che non altamente probabili, ma 
-        cerca di essere prudente quando coprendo i pronostici con doppie tipo 1X o X2 sempre se abbastanza probabili. 
-        Ma tendenzialmente suggerisci spesso
-        risultati sui gol e sul numero di gol o sul possibile gol di una squadra che gioca, sempre tenendo 
-        conto delle difese avversarie e della media di subire gol nel rispettivo campo.
-        Cerca sempre di tenerti cauto nelle previsioni ammeno che non 
-        credi di averne molte probabilita in quello che prevedi non ti sbilanciare troppo.
-        Azzarda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi.
-        Rifai questo processo almeno 10 volte e poi fai uma media di tutte le tue analisi che ti sono uscite.
-        Riassumi sempre tutti i tuoi pronostici alla fine in un tag finele tra parentesi [] esempio se dici 1X e possibile GG scrivi P[1X+GG] o 
-        sempre esempio P[X2+NG+U2.5] oppure ancora P[X] in modo che possa recuperali nel testo. Grazie contro su si te"""
+
+        #modulizziamo i prompt in modo da poter far scegliere all'user che tipo di pronostico vuole
+
+        content=f"""Sei un analista di calcio e analizzi le partite nei dettagli, cerca di fornire un prononisto
+            in base alla classifica delle due sqadre che si incontrano ovvero {squadra1} contro {squadra2}
+            analizza bene nel dettaglio i punti in classifica e i gol fatti generial e subiti 
+            e fai attenzioni ai gol fatti in casa e subiti e quelli fatti fuori casa e subiti. 
+            Le striscie di vittorie pareggi e sconfigge consecutive. Tieni conto anche della capacita di una squadra di fare punti 
+            in casa o fuori casa basandoti sulle statistiche. Calcola una media goal fuori casa e in casa di ogni 
+            squadra e basati anche su questo includi nella tua analisi generale delle possibilita'. Calcola una
+            media punti delle ultime partite giocate anche questo da tenere in conto."""
+        #calcola il pronostico della partita semplice 1 X 2 o combo-bet
+        content1="""
+            Cerca di dare un pronostico sul possbile esito 1 X 2 o 1X o X2 o se ulteriormente GG se credi
+            possano segnare entrambe le squadre o NG se non prevedi che una sqaudra possa non segnare. O1.5 
+            se segnano piu di un gol in totale o piu di 2
+            che sarebbe over 2,5 o piu' O.3.5 etc. Analogamente U1,5 o U2,5 o U3,5 tipo se pensi
+            non facciano piu di 3 gol e via discorrendo. puoi anche combinare piu pronostici se 
+            pensi ci siano buono probabilita,
+            ma cerca di essere dettagliato nella motivazione che ti spinge a credere
+            in quello che prevedi. 
+            Basandoti sulle statistiche calcola la possibilita che la squadra di casa segni almeno 1 
+            gol e fai lo stesso con la squadra che gioca fuori casa, e se ce un alta probabilita oltre 
+            il 65% segnalalo.
+            Tendi ad evitare di suggeriri risultati fissi come 1 o X o 2 singoli, a meno che non altamente probabili, ma 
+            cerca di essere prudente quando coprendo i pronostici con doppie tipo 1X o X2 sempre se abbastanza probabili. 
+            Ma tendenzialmente suggerisci spesso
+            risultati sui gol e sul numero di gol o sul possibile gol di una squadra che gioca, sempre tenendo 
+            conto delle difese avversarie e della media di subire gol nel rispettivo campo.
+            Cerca sempre di tenerti cauto nelle previsioni ammeno che non 
+            credi di averne molte probabilita in quello che prevedi non ti sbilanciare troppo.
+            Azzarda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi.
+            Rifai questo processo almeno 10 volte e poi fai uma media di tutte le tue analisi che ti sono uscite.
+            Riassumi sempre tutti i tuoi pronostici alla fine in un tag finele tra parentesi [] esempio se dici 1X e possibile GG scrivi P[1X+GG] o 
+            sempre esempio P[X2+NG+U2.5] oppure ancora P[X] in modo che possa recuperali nel testo. Grazie contro su si te.
+            Fornisci sempre un solo pronostico e non un usare mai nel testo le parentesi quadre se non esclusivamente per generare il risultato come ti ho chiesto,
+            ed all'interno delle parentesi non aggiungere decorazioni come asterisci o altro non necessario per permettere la lettura ad una funzione esterna."""
+        #probabilita di segnare di ogni squadra
+        content2=f"""
+            Analizzare le probabilità di {squadra1} di segnare quanti gol nella partita e anche di {squadra2}. 
+
+            Probabilità di Gol con la Distribuzione di Poisson:
+            La distribuzione di Poisson è spesso utilizzata per modellare il numero di gol segnati in una partita di calcio. Questo modello si basa sulla frequenza media di gol segnati da una squadra.
+            Per calcolare la probabilità che una squadra segni un certo numero di gol, puoi utilizzare la distribuzione di Poisson con il parametro corrispondente alla media dei gol segnati dalla squadra.
+            Ad esempio, se la squadra A ha una media di 1,5 gol segnati per partita, puoi calcolare la probabilità che segnino esattamente 1 gol utilizzando la formula della distribuzione di Poisson.
+            Ricorda che la distribuzione di Poisson assume che gli eventi (i gol in questo caso) siano indipendenti e che la frequenza media sia costante.
+            Expected Goals (xG):
+            Gli Expected Goals (xG) sono un altro approccio statistico per valutare la probabilità di un tiro di diventare un gol.
+            Si basano su un modello che analizza centinaia di migliaia di tiri e assegna a ciascuno di essi un valore compreso tra 0 (impossibile segnare) e 1 (gol certo) in base alla posizione del tiro.
+            Puoi utilizzare gli xG per valutare la probabilità di segnare da una determinata posizione sul campo.
+            Analisi delle Statistiche delle Squadre:
+            Considera le statistiche delle squadre, come la media dei gol segnati e subiti in casa e in trasferta.
+            Calcola la probabilità che una squadra segni un certo numero di gol in base alle medie e alle condizioni specifiche della partita (ad esempio, l’avversario, la forma attuale della squadra, ecc.).
+            Descriivi il risultato in una forma sintetica in modo che possa essere letta da una funzione autometica ad esempio se prevedi che la squadra di casa segni 1 gol
+            sintetizza con la formula [S1-1] oppure [S1-numero_di_gol] e se la squadra ospite [S2-numeroi_di_gol]
+            """
+        #on selction on user compose pormpt by set mode parameter
+        content+=content1 if mode==1 else content2
+
         if odds != None:
             content+=f"""Allegando anche questa lista json delle quotazioni della partita, {odds},  cerca di suggerire una possibile
                         vantaggiosa che tu pensi sia possibile e dammi sempre in oltre le quotazioni di tutti i risultati 
@@ -641,12 +670,12 @@ class Winmenu:
             footer_win=curses.newwin(1,width,height-1,0)
             footer_win.bkgd(curses.color_pair(2))
             try:
-                footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - " 
-                                  "'s' match-Stats - 'ENTER' data - 'p' Predictions - "
-                                  "'r' Refresh - 'o' Odds - 'a' Analized")
+                footer_win.addstr(0,3,"PRESS: [Q]uit - [F]orm.Start11 -" 
+                                  "[S]tats match - [<-|]data - [P]redictions - "
+                                  "[R]efresh - [O]dds - [A]nalized")
             except:
                 footer_win.clear()
-                footer_win.addstr(0,3,"PRESS: 'q' - 'f' - 's' - 'p' -'r' - 'o' - 'a'")
+                footer_win.addstr(0,3,"PRESS: '[Q]uit - [H]elp")
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
@@ -692,7 +721,7 @@ class Winmenu:
                 footer_win.addstr(0,5,"PRESS 'q' to close")
                 table=self.tabulate_strings(data)
                 for r,line in enumerate(table):
-                    if "GOAL" in line:
+                    if ("GOAL" in line) or ("Own/Goal" in line):
                         data_win.attron(curses.color_pair(7))
                     elif "Yellow Card" in line:
                         data_win.attron(curses.color_pair(8))
@@ -761,7 +790,7 @@ class Winmenu:
                         #screen.refresh()
                         break
             #richiesta previsioni betting e confronto
-            elif (key == ord("p") and (self.events[selected].status == "NS")):
+            elif ((key == ord("p") or (key==ord('g'))) and (self.events[selected].status == "NS")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(5))
                 header_win.addstr(0,3,f"prediction STAT: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
@@ -791,7 +820,12 @@ class Winmenu:
                         self.classifica.append(row)
                 tabclassifica=tabulate(self.classifica,headers="firstrow")
 
-                predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
+                if key==ord('p'):
+                    #chiamata GPT mode 1
+                    predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
+                else:
+                    #chiamata GPT mode 2
+                    predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=2)
                 self.events[selected].analize=predizione
                 predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
                 self.events[selected].pronostic=Prediction.compactOdds(predizione)
@@ -907,6 +941,36 @@ class Winmenu:
                         pred_win.box()
                     elif tasto == ord('q'):  # Per uscire, premi 'q'
                         pred_win.erase()
+                        screen.clear()
+                        break
+            elif (key == ord("h")):
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(8))
+                header_win.addstr(0, 3, f"Help")
+                header_win.refresh()
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(8))
+                footer_win.addstr(0, 3, "PRESS 'q' to close")
+                footer_win.refresh()
+                help_win=curses.newwin(15, width-2, 2, 2)
+                help_win.box()
+                help_win.bkgd(curses.color_pair(8))
+                help_win.addstr(0, 2, "HOT KEYS")
+                help_win.addstr(2, 1, "Press 'S' Statistics of the Match")
+                help_win.addstr(3, 1, "Press 'A' Analyze Match only preloaded")
+                help_win.addstr(4, 1, "Press 'O' Load Odds")
+                help_win.addstr(5, 1, "Press 'R' Refresh")
+                help_win.addstr(6, 1, "Press 'P' Prediction Basic")
+                help_win.addstr(7, 1, "Press 'G' Prediction Teams goals")
+                help_win.addstr(8, 1, "Press 'H' Help")
+                help_win.addstr(11, 1, "Press 'Q' Exit")
+                help_win.addstr(10, 1, "Press 'ARROW UP/DOWN' to scroll text")
+                help_win.addstr(9, 1, "Press 'F' Formations Start 11")
+                help_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        help_win.erase()
                         screen.clear()
                         break
             #set exit point
