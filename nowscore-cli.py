@@ -1,19 +1,21 @@
 #!/usr/bin/python
 
 #Now score version
-version=0.39
+version="0.42"
 
 import argparse
 import datetime
+import os
 import requests
 import json
 import curses
 from datetime import datetime as dateT
+import time
 from tabulate import tabulate
 import tabulate as tabulate2
 import openai
 import sys
-
+from types import SimpleNamespace
 
 #init curse to blessed way
 #import blessed
@@ -24,6 +26,8 @@ parser = argparse.ArgumentParser(description="NOWScore Soccer Events CLI")
 #select apikey
 apikey1file="rapidkey1.key"
 openaikeyfile="openai.key"
+
+predictionfile="predictions_history.json"
 
 # Apri il file in modalità lettura
 with open(apikey1file, 'r') as file:
@@ -50,10 +54,17 @@ sc={"SA":135,
     "UEL":3,
     "UECL":848,
     "SB":136,
+    "SC-A":138,
+    "SC-B":942,
+    "SC-C":943,
     "JUP":144,
     "SLD":119,
     "BLA":218,
     "SLG":9,
+    "J1":98,
+    "SAB":71,
+    "MLS":253,
+    "SPL":307,
     "LIVE":0}
 
 scext={"SA":"Italy Serie A",
@@ -68,35 +79,25 @@ scext={"SA":"Italy Serie A",
        "UEL":"UEFA Europa League Cup",
        "UECL":"EUFA Europa Conference League",
        "SB":"Italy Serie B",
+       "SC-A":"Italy Serie C Girone A",
+       "SC-B":"Italy Serie C Girone B",
+       "SC-C":"Italy Serie C Girone C",
        "JUP":"Belgium Jupyter League",
        "SLD":"Denmark Superlegue",
        "BLA":"Austria Bundeliga",
        "SLG":"Greek Super League",
+       "J1":"Japan J1 League",
+       "SAB":"Brazil Serie A",
+       "MLS":"USA Major League Soccer",
+       "SPL":"Saudi-Arabia Pro League",
        "LIVE":"Live all Match of the day"}
 
 scl=list(sc.keys()) #convertiamo il dizionario in lista in modo da poter meglio gestire
 sclv=list(scext.values())
 
 
-# Aggiungi i parametri opzionali con i loro nomi, descrizioni e valori predefiniti
-parser.add_argument("-l", "--league", help=f"""Show league options:
-                                              - {sclv[0]}={scl[0]}
-                                              - {sclv[1]}={scl[1]}
-                                              - {sclv[2]}={scl[2]}
-                                              - {sclv[3]}={scl[3]}
-                                              - {sclv[4]}={scl[4]}
-                                              - {sclv[5]}={scl[5]}
-                                              - {sclv[6]}={scl[6]}
-                                              - {sclv[7]}={scl[7]}
-                                              - {sclv[8]}={scl[8]}
-                                              - {sclv[9]}={scl[9]}
-                                              - {sclv[10]}={scl[10]}
-                                              - {sclv[11]}={scl[11]}
-                                              - {sclv[12]}={scl[12]}
-                                              - {sclv[13]}={scl[13]}
-                                              - {sclv[14]}={scl[14]}
-                                              - {sclv[15]}={scl[15]}
-                                              - {sclv[16]}={scl[16]}""", default=None)
+parser.add_argument("-l", "--league", help=f"""Show league options:{''.join([f"- {key}={value} " for key, value in zip(sclv, scl)])}""", default=None)
+
 parser.add_argument("-v", "--version", help="Print version of the program and exit",action="store_true")
 #parser.add_argument("-live", "--live", help="Show all live match of the day", action="store_true")
 parser.add_argument("-s", "--standing", help="""Show standing of selected league\n
@@ -198,7 +199,7 @@ def get_statistic(id):
     querystring = {"fixture":id}
 
     headers = {
-        "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+        "X-RapidAPI-Key": apikey,
         "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
     }
 
@@ -221,7 +222,7 @@ def get_live_match():
     querystring = {"live":"all","timezone":"Europe/Rome"}
 
     headers = {
-        "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+        "X-RapidAPI-Key": apikey,
         "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"}
     response = requests.get(url, headers=headers, params=querystring)
 
@@ -231,6 +232,7 @@ def get_live_match():
     tab=json.loads(response.text)
     return tab["response"],remaining_calls
 
+
 #richiede all'avvio le prediction e le analisi comparative dell'evento ID
 class Prediction():
     def __init__(self,idmatch) -> None:
@@ -239,7 +241,7 @@ class Prediction():
         querystring = {"fixture":self.idmatch}
 
         headers = {
-            "X-RapidAPI-Key": "f83fc6c5afmsh8a6fa4ab634b844p1c85b5jsnbd22d812cb4f",
+            "X-RapidAPI-Key": apikey,
             "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
         }
         response = requests.get(url, headers=headers, params=querystring)
@@ -254,19 +256,88 @@ class Prediction():
                          "away":tab["comparison"]["total"]["away"]}
         
     #create a method that receive as parameter a text and call api openai whit apikey variable and retur a text as output
-    def gpt_call(prompt,squadra1,squadra2):
+    def gpt_call(prompt,squadra1,squadra2,odds,mode=1):
         openai.api_key = openaikey
-        content=f"""Sei un analist di calcio e analizzi le partite nei dettagli, cerca di fornire un prononisto
-        in base alla classifica delle due sqadre che si incontrano ovvero {squadra1} contro {squadra2}
-        analizza bene nel dettaglio i punti in classifica e i gol fatti generial e subiti 
-        e fai attenzioni ai gol fatti in casa e subiti e quelli fatti fuori casa e subiti. 
-        Le striscie di vittorie pareggi e sconfigge consecutive. Tieni conto anche della capacita di una squadra di fare punti 
-        in casa o fuori casa basandoti sulle statistiche.
-        Cerca di dare un pronostico sul possbile esito 1 X 2 o 1X o X2 o se ulteriormente GG se credi
-        possano segnare entrambe le squadre o NG se non prevedi che una sqaudra possa segnare. O1.5 o O2.5
-        che sarebbe over 2,5 se segnano piu di 2 goals, analogamente U1,5 o U2,5. Anche piu pronostici
-        insieme ma cerca di essere dettagliato nella motivazione che ti spinge a credere
-        in quello che prevedi."""
+
+        #modulizziamo i prompt in modo da poter far scegliere all'user che tipo di pronostico vuole
+
+        content=f"""Sei un analista di calcio e analizzi le partite nei dettagli, cerca di fornire un prononisto
+            in base alla classifica delle due sqadre che si incontrano ovvero {squadra1} contro {squadra2}
+            analizza bene nel dettaglio i punti in classifica e i gol fatti generial e subiti 
+            e fai attenzioni ai gol fatti in casa e subiti e quelli fatti fuori casa e subiti. 
+            Le striscie di vittorie pareggi e sconfigge consecutive. Tieni conto anche della capacita di una squadra di fare punti 
+            in casa o fuori casa basandoti sulle statistiche. Calcola una media goal fuori casa e in casa di ogni 
+            squadra e basati anche su questo includi nella tua analisi generale delle possibilita'. Calcola una
+            media punti delle ultime partite giocate anche questo da tenere in conto."""
+        #calcola il pronostico della partita semplice 1 X 2 o combo-bet
+        content1="""
+            Cerca di dare un pronostico sul possbile esito 1 X 2 o 1X o X2 o se ulteriormente GG se credi
+            possano segnare entrambe le squadre o NG se non prevedi che una sqaudra possa non segnare. O1.5 
+            se segnano piu di un gol in totale o piu di 2
+            che sarebbe over 2,5 o piu' O.3.5 etc. Analogamente U1,5 o U2,5 o U3,5 tipo se pensi
+            non facciano piu di 3 gol e via discorrendo. puoi anche combinare piu pronostici se 
+            pensi ci siano buono probabilita,
+            ma cerca di essere dettagliato nella motivazione che ti spinge a credere
+            in quello che prevedi. 
+            Basandoti sulle statistiche calcola la possibilita che la squadra di casa segni almeno 1 
+            gol e fai lo stesso con la squadra che gioca fuori casa, e se ce un alta probabilita oltre 
+            il 65% segnalalo.
+            Tendi ad evitare di suggeriri risultati fissi come 1 o X o 2 singoli, a meno che non altamente probabili, ma 
+            cerca di essere prudente quando coprendo i pronostici con doppie tipo 1X o X2 sempre se abbastanza probabili. 
+            Ma tendenzialmente suggerisci spesso
+            risultati sui gol e sul numero di gol o sul possibile gol di una squadra che gioca, sempre tenendo 
+            conto delle difese avversarie e della media di subire gol nel rispettivo campo.
+            Cerca sempre di tenerti cauto nelle previsioni ammeno che non 
+            credi di averne molte probabilita in quello che prevedi non ti sbilanciare troppo.
+            Azzarda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi.
+            Rifai questo processo almeno 10 volte e poi fai uma media di tutte le tue analisi che ti sono uscite.
+            Riassumi sempre tutti i tuoi pronostici alla fine in un tag finele tra parentesi [] esempio se dici 1X e possibile GG scrivi P[1X+GG] o 
+            sempre esempio P[X2+NG+U2.5] oppure ancora P[X] in modo che possa recuperali nel testo. Grazie contro su si te.
+            Fornisci sempre un solo pronostico e non un usare mai nel testo le parentesi quadre se non esclusivamente per generare il risultato come ti ho chiesto,
+            ed all'interno delle parentesi non aggiungere decorazioni come asterisci o altro non necessario per permettere la lettura ad una funzione esterna."""
+        #probabilita di segnare di ogni squadra
+        content2=f"""
+            Analizzare le probabilità di {squadra1} di segnare quanti gol nella partita e anche di {squadra2}. 
+
+            Probabilità di Gol con la Distribuzione di Poisson:
+            La distribuzione di Poisson è spesso utilizzata per modellare il numero di gol segnati in una partita di calcio. Questo modello si basa sulla frequenza media di gol segnati da una squadra.
+            Per calcolare la probabilità che una squadra segni un certo numero di gol, puoi utilizzare la distribuzione di Poisson con il parametro corrispondente alla media dei gol segnati dalla squadra.
+            Ad esempio, se la squadra A ha una media di 1,5 gol segnati per partita, puoi calcolare la probabilità che segnino esattamente 1 gol utilizzando la formula della distribuzione di Poisson.
+            Ricorda che la distribuzione di Poisson assume che gli eventi (i gol in questo caso) siano indipendenti e che la frequenza media sia costante.
+            Expected Goals (xG):
+            Gli Expected Goals (xG) sono un altro approccio statistico per valutare la probabilità di un tiro di diventare un gol.
+            Si basano su un modello che analizza centinaia di migliaia di tiri e assegna a ciascuno di essi un valore compreso tra 0 (impossibile segnare) e 1 (gol certo) in base alla posizione del tiro.
+            Puoi utilizzare gli xG per valutare la probabilità di segnare da una determinata posizione sul campo.
+            Analisi delle Statistiche delle Squadre:
+            Considera le statistiche delle squadre, come la media dei gol segnati e subiti in casa e in trasferta.
+            Calcola la probabilità che una squadra segni un certo numero di gol in base alle medie e alle condizioni specifiche della partita (ad esempio, l’avversario, la forma attuale della squadra, ecc.).
+            Descriivi il risultato in una forma sintetica in modo che possa essere letta da una funzione autometica ad esempio se prevedi che la squadra di casa segni 1 gol
+            sintetizza con la formula [S1-1] oppure [S1-numero_di_gol] e se la squadra ospite [S2-numeroi_di_gol]
+            """
+        content3=f"""
+            Dato le statistiche delle squadre {squadra1} e {squadra2}, calcola la probabilità di vittoria di una delle due squadre utilizzando solo la doppia chance. Ad esempio, 
+            se le statistiche mostrano che la squadra A ha vinto il 60% delle partite e la squadra B il 40%, calcola la probabilità di vittoria della {squadra1} con 
+            la doppia chance 1X e della squadra {squadra2} con la doppia chance X2. 
+            Sintetizza il risultato nella formila tra parentesi quadre DC[risultato] dove risultato puo essere 1X 12 X2,
+            e non aggiungere altro nelle parentesi qaudre in modo che possa essere letto da una funzione esterna.
+            """
+        #on selction on user compose pormpt by set mode parameter
+        #content+=content1 if mode==1 else content2
+        match mode:
+            case 1:
+                content+=content1
+            case 2:
+                content+=content2
+            case 3:
+                content+=content3
+    
+        
+        if odds != None:
+            content+=f"""Allegando anche questa lista json delle quotazioni della partita, {odds},  cerca di suggerire una possibile
+                        vantaggiosa che tu pensi sia possibile e dammi sempre in oltre le quotazioni di tutti i risultati 
+                        che mi suggerisci. Se riesci prendi in cosiderazione anche risultati di di vittorie di una squadra o 
+                        di un altra con piu goal di scarto e dammi le quotazioni vantaggiose sempre se ce
+                        ne puo essere la progabilita"""
         messages = [ {"role": "system", "content":content} ]
         message = f"""data questa classifica {prompt} fammi un pronostico 
         della partita tra {squadra1} contro {squadra2} """
@@ -279,9 +350,49 @@ class Prediction():
             )
         answer = chat.choices[0].message.content
         return answer
+    #definiamo un medoto che estre il pronostico e lo sintetizza 
+    def compactOdds(testo):
+        inizio = testo.find("[")
+        fine = testo.find("]")
+        
+        if inizio != -1 and fine != -1:
+            testo_tra_parentesi = testo[inizio + 1 : fine]
+            return testo_tra_parentesi
+        else:
+            return None
+        
 
-                    
 
+#richiede quote per eventi nel campionato richiesto alla data richiesta
+def get_match_odds(idleague,date):
+
+    url = "https://api-football-v1.p.rapidapi.com/v3/odds"
+
+    querystring = {"league":idleague,
+                    "season":"2023",
+                    "date":date,
+                    "bookmaker":"6"}
+
+    headers = {
+        "X-RapidAPI-Key": apikey,
+        "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+    }
+
+    response = requests.get(url, headers=headers, params=querystring)
+    tab=json.loads(response.text)
+    odds=[]
+    for r in tab["response"]:
+        odds.append(Odds(r))
+    return odds
+
+#classe dati per odds     
+class Odds():
+    def __init__(self,response: dict) -> None:
+        #self.response=SimpleNamespace(**response)
+        self.bookmaker=response["bookmakers"][0]["name"]
+        self.league=SimpleNamespace(**response["league"])
+        self.fixture=SimpleNamespace(**response["fixture"])
+        self.odd=dict(response["bookmakers"][0])
 
 
 # Leggi gli argomenti dalla riga di comando
@@ -325,15 +436,34 @@ class Match:
         #proprietá globali di statisthe eventi
         self.homestat=None
         self.awaystat=None
-
+        #propieta che popola l'evento con un altra classe dall'esterno che si 
+        #occupera delle statistiche
+        self.odd=None
+        self.pronostic=""
+        self.analize="" #testo della analisi del match
+        #regista la data in formato anno-mese-giorno valido per eventuali query
+        self.date_req_format=dateT.fromisoformat(datematch).strftime("%Y-%m-%d") # formato data valido per query
     #metodo che scarica gli eventi del match.
     def flow_events(self):
         list_event=get_events_match(self.idfixture)
         tabellaeventi=[[self.teamhome,"",self.goalshome,"vs",self.goalsaway,"",self.teamaway]]
         for e in list_event:
-            match e["type"]:
-                case "Goal":
-                    e["detail"]="GOAL" if e["detail"]=="Normal Goal" else "Penalty/GOAL"
+            edetail=e["detail"]
+            if e["type"]=="Goal":
+                if e["detail"]=="Normal Goal":
+                    edetail="GOAL ⚽" 
+                elif e["detail"]=="Penalty":
+                    edetail="Penalty/GOAL ⚽"
+                elif e["detail"]=="Missed Penalty":
+                    edetail="Missed/Penalty ❌⚽️"
+                elif e["detail"]=="Own Goal":
+                    edetail="Own/Goal <=⚽️"
+            if e["type"]=="Var":
+                edetail="VAR: "+e["detail"]
+            if e["type"]=="subst":
+                edetail="🔄 "+str(e["detail"])
+    
+
             #aggiungi il tempo di recupero
             extratime=e["time"]["extra"] if e["time"]["extra"]!=None else 0
 
@@ -343,12 +473,12 @@ class Match:
                 dbrow=e["player"]["name"]
             if e["team"]["name"]==self.teamhome:
                 tabellaeventi.append([dbrow,
-                                    e["detail"],"",
+                                    edetail,"",
                                     str(e["time"]["elapsed"]+extratime),"","",""])
             if e["team"]["name"]==self.teamaway:
                 tabellaeventi.append(["","","",
                                     str(e["time"]["elapsed"]+extratime),"",
-                                    e["detail"],
+                                    edetail,
                                     dbrow])
         #return tabulate(tabellaeventi,headers="firstrow")
         return tabellaeventi
@@ -372,19 +502,59 @@ class Match:
         for i1,i2 in zip(f1,f2):
             list_stat.append([i1.type,"|",i1.value,i2.value])
         return list_stat
-
-
+#salva la predizione nei file di archivio
+def upload_save_prediction(idmatch,prediction,analize):
+    #carichiamo il file se esiste
+    if not(os.path.exists(predictionfile)): # se non esiste
+        load={"id":idmatch,"pred":prediction,"analize":analize}
+        with open(predictionfile,"w") as file:
+            json.dump(load,file)
+    else:
+        with open(predictionfile,"r") as file:
+            load=json.load(file)
+            if isinstance(load, dict):
+                load = [load]  # Se è un dizionario, convertilo in una lista
+            find=False
+            for p in load:
+                if p["id"]==idmatch:  
+                    p["pred"]=prediction
+                    p["analize"]=analize
+                    find=True
+                    break
+            if not(find): #il record e viene aggiunto al file
+                load.append({"id":idmatch,"pred":prediction,"analize":analize})
+        with open(predictionfile, "w") as file:        
+            json.dump(load,file,indent=4)
+#carica predizioni dallo storico salvato
+def load_saved_prediction(event):
+    try:
+        with open(predictionfile, "r") as file:
+            load=json.load(file)
+            if isinstance(load, dict):
+                load = [load]  # Se è un dizionario, convertilo in una lista
+            for p in load:
+                if p["id"]==event.idfixture:
+                    event.pronostic=p["pred"]
+                    event.analize=p["analize"]
+        
+    except FileNotFoundError:
+        pass  #non fare nulla se il file non esiste
+    
+    return event
+    
+            
 class Winmenu:
     def __init__(self,events:list,title="select options"):
         self.events=events
         self.title=title
         self.classifica=None
     # Definisci una funzione che prende una lista di liste di # Definisci una funzione che prende una lista di liste di stringhe come parametro
-    def formatta_liste(self):
+    def formatta_liste(self,eventi):
         liste=[]
-        for event in self.events:
+        for event in eventi:
+            event=load_saved_prediction(event)
             liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
-                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country])
+                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country," ",event.pronostic])
         # Crea una lista vuota per memorizzare le liste formattate
         liste_formattate = []
         # Trova la lunghezza della parola più lunga nelle prime due posizioni di tutte le liste
@@ -451,10 +621,25 @@ class Winmenu:
             righe.append(" ".join(riga_corrente))
         
         return righe
+    #definiamo una funzione islive che stabilisce se "1H" o "2H" sono presenti nella lista di options
+    #per tanto esiste un evento live in corso
+    def isLive(self,lista_di_stringhe):
+        # Parole chiave da cercare
+        parole_chiave = ["1H", "2H"]    
+        # Itera attraverso la lista di stringhe
+        for stringa in lista_di_stringhe:
+            # Normalizza le stringhe a maiuscole per rendere la ricerca insensibile al maiuscolo/minuscolo
+            stringa_normalizzata = stringa.upper()
+            # Verifica la presenza delle parole chiave
+            for parola in parole_chiave:
+                if parola in stringa_normalizzata:
+                    return True  # Restituisce True al primo ritrovamento
+        # Se nessuna delle parole chiave viene trovata, restituisce False
+        return False
+
     #display menu della lista eventi e ne processa le varie sotto-opzioni
-    def menu(self):
-                
-        options=self.formatta_liste()
+    def menu(self):        
+        options=self.formatta_liste(self.events)
         screen=curses.initscr()
         curses.curs_set(0)
         curses.noecho()
@@ -471,11 +656,12 @@ class Winmenu:
         #pair color per segnalazione Yellow Card
         curses.init_pair(8,curses.COLOR_YELLOW, curses.COLOR_BLUE)
         #pai color per segnalazione Red Card
-        curses.init_pair(8,curses.COLOR_RED, curses.COLOR_BLUE)
+        curses.init_pair(9,curses.COLOR_RED, curses.COLOR_BLUE)
+        curses.init_pair(10, curses.COLOR_CYAN, curses.COLOR_BLACK)
 
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+3)<height else height-3
-        setw=len(max(options))+10 if (len(max(options))+10<width-2) else width-2
+        setw=len(max(options))+15 if (len(max(options))+15<width-2) else width-2
 
         menu_items = len(options)
         max_items = height - 5
@@ -495,14 +681,16 @@ class Winmenu:
             #main box menu
             menu_win = curses.newwin(seth, setw, 1, 5)
             menu_win.box()
-            #footer stricia messaggi di aiuto
+            #footer stricia messaggi di aiutoq
             footer_win=curses.newwin(1,width,height-1,0)
             footer_win.bkgd(curses.color_pair(2))
             try:
-                footer_win.addstr(0,3,"PRESS: 'q' exit - 'f' 11-lineups - 's' match-Stats - 'ENTER' data - 'p' Predictions Match")
+                footer_win.addstr(0,3,"PRESS: [Q]uit - [F]orm.Start11 -" 
+                                  "[S]tats match - [<-|]data - [P]redictions - "
+                                  "[R]efresh - [O]dds - [A]nalized")
             except:
                 footer_win.clear()
-                footer_win.addstr(0,3,"PRESS: 'q' - 'f' - 's' - 'p' ")
+                footer_win.addstr(0,3,"PRESS: '[Q]uit - [H]elp")
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
@@ -548,14 +736,15 @@ class Winmenu:
                 footer_win.addstr(0,5,"PRESS 'q' to close")
                 table=self.tabulate_strings(data)
                 for r,line in enumerate(table):
-                    if "GOAL" in line:
+                    if ("GOAL" in line) or ("Own/Goal" in line):
                         data_win.attron(curses.color_pair(7))
                     elif "Yellow Card" in line:
                         data_win.attron(curses.color_pair(8))
                     elif "Red Card" in line:
                         data_win.attron(curses.color_pair(9))
+                    else:
+                        data_win.attron(curses.color_pair(2)) #setta colore verde sullo sfondo
                     data_win.addstr(r+1,2,line)
-                    data_win.attroff(curses.color_pair(7))
                 data_win.refresh()
                 header_win.refresh()
                 footer_win.refresh()
@@ -616,10 +805,7 @@ class Winmenu:
                         #screen.refresh()
                         break
             #richiesta previsioni betting e confronto
-            elif (key == ord("p") and (self.events[selected].status == "NS")):
-                #predictiontext="In questa classifica di Serie A, l'Inter è attualmente in testa con 69 punti dopo 26 partite, seguita dalla Juventus con 57 punti in 27 partite e dall'AC Milan con 56 punti in 27 partite. Guardando le statistiche, l'Inter ha la miglior difesa con solo 12 gol subiti e un attacco prolifico con 67 gol segnati. La Juventus ha una buona difesa ma ha subito più gol dell'Inter, mentre l'AC Milan ha un buon equilibrio tra attacco e difesa."
-                #textjustify=self.giustifica_testo(testoprova,50)
-                #pred=Prediction(self.events[selected].idfixture).gpt_call()
+            elif ((key == ord("p") or (key==ord('g') or (key==ord('d')))) and (self.events[selected].status == "NS")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(5))
                 header_win.addstr(0,3,f"prediction STAT: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
@@ -628,11 +814,12 @@ class Winmenu:
                 footer_win.bkgd(curses.color_pair(5))
                 footer_win.addstr(0,3,"PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
                 footer_win.refresh()
-                pred_win=curses.newwin(10,width-2,2,2)
+                pred_win=curses.newwin(15,width-2,2,2)
                 pred_win.box()
                 pred_win.bkgd(curses.color_pair(5))
                 pred_win_x,pred_win_y=pred_win.getmaxyx()
-
+                pred_win.addstr(1, 1, f"Analize Match...: {self.events[selected].teamhome} vs {self.events[selected].teamaway}")
+                pred_win.refresh()
                 #inizia la predizione
                 if self.classifica == None :
                     list_stand,rem=get_standing_season(self.events[selected].idleague)
@@ -647,8 +834,30 @@ class Winmenu:
                             ' '.join(t["form"]),t["status"]]
                         self.classifica.append(row)
                 tabclassifica=tabulate(self.classifica,headers="firstrow")
-                predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway)
+                
+                # match key:
+                #     case ord('p'):
+                #         predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
+                #     case ord('g'):
+                #         predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=2)
+                #     case ord('d'):
+                #         predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=3)
+                                 
+                if key==ord('p'):
+                    #chiamata GPT mode 1
+                    predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
+                elif key==ord('g'):
+                    #chiamata GPT mode 2
+                    predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=2)
+                elif key==ord('d'):
+                    #chiamata GPT mode 3
+                    predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=3)
+                self.events[selected].analize=predizione
                 predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
+                self.events[selected].pronostic=Prediction.compactOdds(predizione)
+                #salva/aggiorna la predizione sul server
+                upload_save_prediction(self.events[selected].idfixture,self.events[selected].pronostic,predizione)
+                options=self.formatta_liste(self.events)
 
                 altezza = min(len(predictiontext), pred_win_x - 2)
                 start_index=0
@@ -674,18 +883,123 @@ class Winmenu:
                         pred_win.erase()
                         screen.clear()
                         break
-                    #pred_win.refresh()
-                    #header_win.refresh()
-                    #footer_win.refresh()
-                # while True:
-                #     pausekey=screen.getch() #fa una pausa
-                #     if pausekey==ord("q"):
-                #         pred_win.erase()
-                #         screen.clear()
-                #         #screen.refresh()
-                #         break       
-                            
+            #carica le quote per tutti gli eventi selezionati
+            elif (key == ord("o") and (self.events[selected].status == "NS")):
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(6))
+                header_win.addstr(0, 5, f"Odds Loading...")
+                header_win.refresh()
+                odds_win=curses.newwin(3, width-2, 2, 2)
+                odds_win.box()
+                odds_win.bkgd(curses.color_pair(6))
+                odds_win.addstr(1, 2, "LOADING ALL SELECTED ODDS...")
+                odds_win.refresh()
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(6))
+                footer_win.addstr(0, 5, "PRESS 'q' to close")
+                footer_win.refresh()
+                #load odds 
+                pl=0
+                tab_odds=get_match_odds(self.events[selected].idleague, self.events[selected].date_req_format)
+                for todds in tab_odds:
+                    for ievents in range(len(self.events)):
+                        if self.events[ievents].idfixture==todds.fixture.id:
+                            self.events[ievents].odd=todds.odd
+                            pl+=1
+                            odds_win.clear()
+                            odds_win.box()
+                            odds_win.addstr(1, 2, f"LOADING ODDS... {pl}/{len(self.events)}")
+                            odds_win.refresh()
+                            #pause 1 second
+                            time.sleep(1)
+                            break
+                odds_win.clear()
+                odds_win.box()
+                odds_win.addstr(1, 2, "LOADED!")
+                odds_win.refresh()                                
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        odds_win.erase()
+                        screen.clear()
+                        break
+            #refresh option            
+            elif (key == ord("r") and self.isLive(options)):
+                menu_win.clear()
+                return 1 #refresh code for now not used
+            #read analized match if exist
+            elif (key == ord("a") and (self.events[selected].analize != "")):
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(7))
+                header_win.addstr(0, 3, f"Analized Match between {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                header_win.refresh()
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(7))
+                footer_win.addstr(0, 3, "PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
+                footer_win.refresh()
+                pred_win=curses.newwin(15,width-2,2,2)
+                pred_win.box()
+                pred_win.bkgd(curses.color_pair(10))
+                pred_win_x,pred_win_y=pred_win.getmaxyx()
+                pred_win.refresh()
+                predictiontext=self.giustifica_testo(self.events[selected].analize,pred_win_y-4)
+                #options=self.formatta_liste(self.events)
 
+                altezza = min(len(predictiontext), pred_win_x - 2)
+                start_index=0
+                while True:
+                    # Visualizza le righe correnti
+                    for i in range(altezza):
+                        if start_index + i < len(predictiontext):
+                            pred_win.addstr(i + 1, 1, predictiontext[start_index + i][:width - 4])
+                    pred_win.refresh()
+                    # Attendi l'input dell'utente
+                    tasto = screen.getch()
+
+                    # Gestisci gli input delle frecce
+                    if tasto == curses.KEY_UP:
+                        start_index = max(0, start_index - 1)
+                        pred_win.clear()
+                        pred_win.box()
+                    elif tasto == curses.KEY_DOWN:
+                        start_index = min(len(predictiontext) - altezza, start_index + 1)
+                        pred_win.clear()
+                        pred_win.box()
+                    elif tasto == ord('q'):  # Per uscire, premi 'q'
+                        pred_win.erase()
+                        screen.clear()
+                        break
+            elif (key == ord("h")):
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(8))
+                header_win.addstr(0, 3, f"Help")
+                header_win.refresh()
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(8))
+                footer_win.addstr(0, 3, "PRESS 'q' to close")
+                footer_win.refresh()
+                help_win=curses.newwin(15, width-2, 2, 2)
+                help_win.box()
+                help_win.bkgd(curses.color_pair(8))
+                help_win.addstr(0, 2, "HOT KEYS")
+                help_win.addstr(2, 1, "Press 'S' Statistics of the Match")
+                help_win.addstr(3, 1, "Press 'A' Analyze Match only preloaded")
+                help_win.addstr(4, 1, "Press 'O' Load Odds")
+                help_win.addstr(5, 1, "Press 'R' Refresh")
+                help_win.addstr(6, 1, "Press 'P' Prediction Basic")
+                help_win.addstr(7, 1, "Press 'G' Prediction Teams goals")
+                help_win.addstr(8, 1, "Press 'D' Prediction DC only prevision")
+                help_win.addstr(9, 1, "Press 'H' Help")
+                help_win.addstr(12, 1, "Press 'Q' Exit")
+                help_win.addstr(11, 1, "Press 'ARROW UP/DOWN' to scroll text")
+                help_win.addstr(10, 1, "Press 'F' Formations Start 11")
+                help_win.refresh()
+                while True:
+                    pausekey=screen.getch() #fa una pausa
+                    if pausekey==ord("q"):
+                        help_win.erase()
+                        screen.clear()
+                        break
             #set exit point
             elif key == ord("q"):
                 menu_win.erase()
@@ -744,34 +1058,35 @@ if (args.league!=None) and (args.league.upper() in scl):
         else:
             tdeltafrom=datetime.date.today()+datetime.timedelta(tdelta)
             tdeltato=datetime.date.today()
-        #verifica se viene invocata la funzione livescore di tutti i match 
-        if (args.league.upper()=="LIVE"):
-            p,rem=get_live_match()
-        else:
-            p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
-        ev=[]
-        for m in p:
-            #carichiamo i dati del match nella classe
-            ev.append(Match(m["league"]["id"],m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
-                        m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
-                        m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
-                        m["fixture"]["referee"],m["fixture"]["venue"]["name"],
-                        m["fixture"]["venue"]["city"],m["league"]["country"]))
-            # voglio sapere quale e il response delléxtratime di un match 
-            ev.sort(key=lambda match: match.country)
+        
+        selection=0
+        while selection != -1:
 
-        try:
-            selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
-            if selection!=-1:
-                #carichiamo gli eventi
-                pass
+            #verifica se viene invocata la funzione livescore di tutti i match 
+            if (args.league.upper()=="LIVE"):
+                p,rem=get_live_match()
             else:
-                #print(ev[1].flow_events())
-                print(f"NOWScore {version} richiesta di uscita dal programma!")
-                exit()
-        except ValueError as error:
-            print(f"errore {error}")
-            key=input("non ci sono eventi da visualizzare...(press any key)")
+                p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
+            ev=[]
+            for m in p:
+                #carichiamo i dati del match nella classe
+                ev.append(Match(m["league"]["id"],m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
+                            m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
+                            m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
+                            m["fixture"]["referee"],m["fixture"]["venue"]["name"],
+                            m["fixture"]["venue"]["city"],m["league"]["country"]))
+                # voglio sapere quale e il response delléxtratime di un match 
+                ev.sort(key=lambda match: match.country)
+
+            try:
+                selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
+                if selection == -1:
+                    print(f"NOWScore {version} richiesta di uscita dal programma!")
+                    exit()
+            except ValueError as error:
+                print(f"errore {error}")
+                key=input("non ci sono eventi da visualizzare...(press any key)")
+                break
 
 try:
     pass

@@ -25,37 +25,32 @@ You can use the following options to interact with the application:
 ## Examples of Usage
 
 1. Show current results of the Premier League:
-   
+
    ```bash
    nowscore-cli -l pl
    ```
-
 2. Show the standings of the Spanish La Liga:
-   
+
    ```bash
    nowscore-cli -l liga -s
    ```
-
 3. Show all matches in the Premier League from today to 30 days ahead:
-   
+
    ```bash
    nowscore-cli -l pl -t=30
    ```
-
 4. Show all matches in the UEFA Europa League from the past week:
-   
+
    ```bash
    nowscore-cli -l uel -t=-7
    ```
-
 5. Show standing of single season of Uefa Champions League
-   
+
    ```bash
    nowscore-cli -l ucl -s 0 "season A" 1 "season B" 2 "season C"...
    ```
-
 6. Show all match live in this datetime
-   
+
    ```bash
    nowscore-cli -l live
    ```
@@ -64,25 +59,25 @@ You can use the following options to interact with the application:
 
 You can use the following league codes to access information for the desired football leagues using the application:
 
-| Codice | Campionato                    |
-| ------ | ----------------------------- |
-| SA     | Italy Serie A                 |
-| PL     | England Premier League        |
-| BL     | Germany Bundesliga            |
-| LIGA   | Spain La Liga                 |
-| L1     | France Ligue 1                |
-| ER     | Netherlands Eredivisie        |
-| SL     | Turkey Süper Lig              |
-| PPL    | Portugal Primeira Liga        |
-| UCL    | UEFA Champions League Cup     |
-| UEL    | UEFA Europa League Cup        |
-| UECL   | UEFA Europa Conference League |
-| SB     | Italy Serie B                 |
-| JUP    | Belgium Jupiler League        |
-| SLD    | Denmark Superliga             |
-| BLA    | Austria Bundesliga            |
-| SLG    | Greek Super League            |
-| LIVE   | Live all Match of the day     |
+| Codice | Campionato |
+|--------|------------|
+| SA | Italy Serie A |
+| PL | England Premier League |
+| BL | Germany Bundesliga |
+| LIGA | Spain La Liga |
+| L1 | France Ligue 1 |
+| ER | Netherlands Eredivisie |
+| SL | Turkey Süper Lig |
+| PPL | Portugal Primeira Liga |
+| UCL | UEFA Champions League Cup |
+| UEL | UEFA Europa League Cup |
+| UECL | UEFA Europa Conference League |
+| SB | Italy Serie B |
+| JUP | Belgium Jupiler League |
+| SLD | Denmark Superliga |
+| BLA | Austria Bundesliga |
+| SLG | Greek Super League |
+| LIVE | Live all Match of the day |
 
 Use these codes to view results, standings, and fixtures for your desired football leagues.
 
@@ -97,26 +92,17 @@ In addition, you have added the ability to create a prediction for each match in
 ## Steps
 
 1. Register on RapidAPI
-   
    - Go to [RapidAPI](https://rapidapi.com/) and click on "Sign Up" to create an account.
    - Complete the registration process and log in to your account.
-
 2. Search for the Footbal API
-   
    - Use the search bar on RapidAPI to find the Footbal API.
    - Click on the API to view the details and subscription options.
-
 3. Choose a subscription plan
-   
    - Select a subscription plan that meets your needs. Free and paid plans may be available.
-
 4. Get the API Key
-   
    - After choosing a plan, an API key will be generated for you.
    - Copy the API key and store it in a secure location.
-
 5. Use the API Key
-   
    - Use the API key to authenticate and access the Footbal API data in your requests.
 
 ## Additional Resources
