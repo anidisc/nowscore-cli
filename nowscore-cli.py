@@ -314,9 +314,24 @@ class Prediction():
             Descriivi il risultato in una forma sintetica in modo che possa essere letta da una funzione autometica ad esempio se prevedi che la squadra di casa segni 1 gol
             sintetizza con la formula [S1-1] oppure [S1-numero_di_gol] e se la squadra ospite [S2-numeroi_di_gol]
             """
+        content3=f"""
+            Dato le statistiche delle squadre {squadra1} e {squadra2}, calcola la probabilità di vittoria di una delle due squadre utilizzando solo la doppia chance. Ad esempio, 
+            se le statistiche mostrano che la squadra A ha vinto il 60% delle partite e la squadra B il 40%, calcola la probabilità di vittoria della {squadra1} con 
+            la doppia chance 1X e della squadra {squadra2} con la doppia chance X2. 
+            Sintetizza il risultato nella formila tra parentesi quadre DC[risultato] dove risultato puo essere 1X 12 X2,
+            e non aggiungere altro nelle parentesi qaudre in modo che possa essere letto da una funzione esterna.
+            """
         #on selction on user compose pormpt by set mode parameter
-        content+=content1 if mode==1 else content2
-
+        #content+=content1 if mode==1 else content2
+        match mode:
+            case 1:
+                content+=content1
+            case 2:
+                content+=content2
+            case 3:
+                content+=content3
+    
+        
         if odds != None:
             content+=f"""Allegando anche questa lista json delle quotazioni della partita, {odds},  cerca di suggerire una possibile
                         vantaggiosa che tu pensi sia possibile e dammi sempre in oltre le quotazioni di tutti i risultati 
@@ -790,7 +805,7 @@ class Winmenu:
                         #screen.refresh()
                         break
             #richiesta previsioni betting e confronto
-            elif ((key == ord("p") or (key==ord('g'))) and (self.events[selected].status == "NS")):
+            elif ((key == ord("p") or (key==ord('g') or (key==ord('d')))) and (self.events[selected].status == "NS")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(5))
                 header_win.addstr(0,3,f"prediction STAT: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
@@ -819,13 +834,24 @@ class Winmenu:
                             ' '.join(t["form"]),t["status"]]
                         self.classifica.append(row)
                 tabclassifica=tabulate(self.classifica,headers="firstrow")
-
+                
+                # match key:
+                #     case ord('p'):
+                #         predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
+                #     case ord('g'):
+                #         predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=2)
+                #     case ord('d'):
+                #         predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=3)
+                                 
                 if key==ord('p'):
                     #chiamata GPT mode 1
                     predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
-                else:
+                elif key==ord('g'):
                     #chiamata GPT mode 2
                     predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=2)
+                elif key==ord('d'):
+                    #chiamata GPT mode 3
+                    predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=3)
                 self.events[selected].analize=predizione
                 predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
                 self.events[selected].pronostic=Prediction.compactOdds(predizione)
@@ -962,10 +988,11 @@ class Winmenu:
                 help_win.addstr(5, 1, "Press 'R' Refresh")
                 help_win.addstr(6, 1, "Press 'P' Prediction Basic")
                 help_win.addstr(7, 1, "Press 'G' Prediction Teams goals")
-                help_win.addstr(8, 1, "Press 'H' Help")
-                help_win.addstr(11, 1, "Press 'Q' Exit")
-                help_win.addstr(10, 1, "Press 'ARROW UP/DOWN' to scroll text")
-                help_win.addstr(9, 1, "Press 'F' Formations Start 11")
+                help_win.addstr(8, 1, "Press 'D' Prediction DC only prevision")
+                help_win.addstr(9, 1, "Press 'H' Help")
+                help_win.addstr(12, 1, "Press 'Q' Exit")
+                help_win.addstr(11, 1, "Press 'ARROW UP/DOWN' to scroll text")
+                help_win.addstr(10, 1, "Press 'F' Formations Start 11")
                 help_win.refresh()
                 while True:
                     pausekey=screen.getch() #fa una pausa
