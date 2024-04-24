@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.42"
+version="0.42.5"
 
 import argparse
 import datetime
@@ -577,17 +577,56 @@ class Winmenu:
         for event in eventi:
             event=load_saved_prediction(event)
             liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
-                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country," ",event.pronostic])
+                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country," |",event.pronostic])
         # Crea una lista vuota per memorizzare le liste formattate
         liste_formattate = []
         # Trova la lunghezza della parola più lunga nelle prime due posizioni di tutte le liste
         max_len = max(len(lista[i]) for lista in liste for i in range(2))
+        #creaiamo un dict di chiave come il nome delle nazioni dei campionai e valore come emoji della bandiera della nazione rappresentante
+        dict_country={"ARGENTINA":"🇦🇷",
+                    "AUSTRALIA":"🇦🇺",
+                    "BELGIUM":"🇧🇪",
+                    "BRAZIL":"🇧🇷",
+                    "COLOMBIA":"🇨🇴",
+                    "CROATIA":"🇭🇷",
+                    "DENMARK":"🇩🇰",
+                    "FINLAND":"🇫🇮",
+                    "ENGLAND":"🇬🇧",
+                    "FRANCE":"🇫🇷",
+                    "GERMANY":"🇩🇪",
+                    "GREECE":"🇬🇷",
+                    "MEXICO":"🇲🇽",
+                    "MOROCCO":"🇲🇦",
+                    "NETHERLANDS":"🇳🇱",
+                    "POLAND":"🇵🇱",
+                    "PORTUGAL":"🇵🇹",
+                    "SPAIN":"🇪🇸",
+                    "SWITZERLAND":"🇨🇭",
+                    "TURKEY":"🇹🇷",
+                    "ITALY":"🇮🇹",
+                    "USA":"🇺🇸",
+                    "JAPAN":"🇯🇵",
+                    "INDONESIA":"🇮🇩",
+                    "CHILE":"🇨🇱",
+                    "CHINA":"🇨🇳",
+                    "AUSTRIA":"🇦🇹",
+                    "WORLD":"🌍"}
         # Per ogni lista nella lista di liste
         for lista in liste:
             # Crea una stringa formattata usando il metodo join e il metodo format
             # Usa il parametro <{max_len}> per allineare le prime due parole a sinistra e riempire con spazi
             # Aggiungi il resto delle parole senza formattazione
+        
             stringa = " ".join("{:<{max_len}}".format(lista[i], max_len=max_len) for i in range(2)) + " " + " ".join(lista[2:])
+            #aggiungi la bandiera della nazione se esiste il nome della chiave del dict nella lista 
+            found=False
+            for country in stringa.split():
+                if country in dict_country:
+                    stringa=dict_country[country]+" "+stringa
+                    found=True
+                    break
+            if not(found):
+                stringa=dict_country["WORLD"]+" "+stringa
             # Aggiungi la stringa formattata alla lista delle liste formattate
             liste_formattate.append(stringa)
             # Restituisci la lista delle liste formattate
@@ -685,7 +724,7 @@ class Winmenu:
         curses.init_pair(11, curses.COLOR_WHITE, curses.COLOR_BLACK)
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+3)<height else height-3
-        setw=len(max(options))+15 if (len(max(options))+15<width-2) else width-2
+        #setw=len(max(options))+15 if (len(max(options))+15<width-2) else width-2
 
         menu_items = len(options)
         max_items = height - 5
@@ -703,7 +742,8 @@ class Winmenu:
             header_win.bkgd(curses.color_pair(2))
             header_win.addstr(0,5, self.title)
             #main box menu
-            menu_win = curses.newwin(seth, setw, 1, 5)
+            #menu_win = curses.newwin(seth, setw, 1, 5)
+            menu_win=curses.newwin(seth,width-2,1,2)
             menu_win.box()
             #footer stricia messaggi di aiutoq
             footer_win=curses.newwin(1,width,height-1,0)
