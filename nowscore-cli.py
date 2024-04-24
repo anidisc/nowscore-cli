@@ -312,7 +312,10 @@ class Prediction():
             Considera le statistiche delle squadre, come la media dei gol segnati e subiti in casa e in trasferta.
             Calcola la probabilità che una squadra segni un certo numero di gol in base alle medie e alle condizioni specifiche della partita (ad esempio, l’avversario, la forma attuale della squadra, ecc.).
             Descriivi il risultato in una forma sintetica in modo che possa essere letta da una funzione autometica ad esempio se prevedi che la squadra di casa segni 1 gol
-            sintetizza con la formula [S1-1] oppure [S1-numero_di_gol] e se la squadra ospite [S2-numeroi_di_gol]
+            sintetizza con la formula [S1-1] oppure [S1-numero_di_gol:percentuale_di_probabilita] e se la squadra ospite [S2-numeroi_di_gol:percetuale_di_probabilita],
+            per tanto ad esempio se prevedi che la squadra di casa segni 1 gol sintetizza con la formula [S1-1:70%] e se la squadra ospite [S2-0:65%], oltertutto se 
+            vuoi segnalare entambe preferisco che il risultato sia sempre sintetizzato come [S1-1:70%,S2-0:65%], la cosa importante
+            e che tieni in considerazione solo percentuali superiori o uguali a 65%
             """
         content3=f"""
             Dato le statistiche delle squadre {squadra1} e {squadra2}, calcola la probabilità di vittoria di una delle due squadre utilizzando solo la doppia chance. Ad esempio, 
@@ -320,6 +323,24 @@ class Prediction():
             la doppia chance 1X e della squadra {squadra2} con la doppia chance X2. 
             Sintetizza il risultato nella formila tra parentesi quadre DC[risultato] dove risultato puo essere 1X 12 X2,
             e non aggiungere altro nelle parentesi qaudre in modo che possa essere letto da una funzione esterna.
+            """
+        #prompt che mi restituisca il risultato esatto
+        content4=f"""
+            Basandoti sulle statistiche dettagliate delle squadre {squadra1} e {squadra2}, comprese le prestazioni recenti, 
+            la forma in casa e in trasferta, i gol fatti e subiti, e qualsiasi altra informazione rilevante, 
+            analizza le probabilità di diversi risultati esatti della partita. Considera anche l'importanza della partita 
+            per entrambe le squadre e come questo potrebbe influenzare il loro approccio al gioco.
+
+            Utilizza le informazioni disponibili per calcolare le probabilità di diversi risultati esatti, come 1-0, 2-1, 0-0, ecc., 
+            e fornisci una breve spiegazione su come hai raggiunto queste conclusioni. Se disponibili, includi anche le quote 
+            delle scommesse per questi risultati esatti per vedere se ci sono discrepanze significative tra le tue analisi 
+            e le aspettative del mercato.
+
+            Infine, basandoti sulle tue analisi e le quote disponibili, suggerisci uno o più risultati esatti che ritieni 
+            più probabili o che offrono il miglior valore in termini di scommessa. Riassumi il tuo pronostico finale 
+            in una formula sintetica, ad esempio [RE:2-1], che possa essere facilmente interpretata. 
+            O anche eventualmente piu di un risultato esatto se lo ritieni altamente probabile come [RE:2-1,1-2] ma l'unica condizione e che sia sempre sintetizzato come [RE:risultato_esatto1,risultato_esatto2,risultato_esatto3,..].
+
             """
         #on selction on user compose pormpt by set mode parameter
         #content+=content1 if mode==1 else content2
@@ -330,6 +351,8 @@ class Prediction():
                 content+=content2
             case 3:
                 content+=content3
+            case 4:
+                content+=content4
     
         
         if odds != None:
@@ -658,7 +681,8 @@ class Winmenu:
         #pai color per segnalazione Red Card
         curses.init_pair(9,curses.COLOR_RED, curses.COLOR_BLUE)
         curses.init_pair(10, curses.COLOR_CYAN, curses.COLOR_BLACK)
-
+        #pair color per segnalazione HELP
+        curses.init_pair(11, curses.COLOR_WHITE, curses.COLOR_BLACK)
         height, width = screen.getmaxyx()
         seth=len(options)+2 if (len(options)+3)<height else height-3
         setw=len(max(options))+15 if (len(max(options))+15<width-2) else width-2
@@ -805,7 +829,7 @@ class Winmenu:
                         #screen.refresh()
                         break
             #richiesta previsioni betting e confronto
-            elif ((key == ord("p") or (key==ord('g') or (key==ord('d')))) and (self.events[selected].status == "NS")):
+            elif ((key == ord("p") or (key==ord('g') or (key==ord('d')or (key==ord('e'))))) and (self.events[selected].status == "NS")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(5))
                 header_win.addstr(0,3,f"prediction STAT: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
@@ -852,6 +876,9 @@ class Winmenu:
                 elif key==ord('d'):
                     #chiamata GPT mode 3
                     predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=3)
+                elif key==ord('e'):
+                    #chiamata GPT mode 4
+                    predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=4)
                 self.events[selected].analize=predizione
                 predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
                 self.events[selected].pronostic=Prediction.compactOdds(predizione)
@@ -978,22 +1005,27 @@ class Winmenu:
                 footer_win.bkgd(curses.color_pair(8))
                 footer_win.addstr(0, 3, "PRESS 'q' to close")
                 footer_win.refresh()
-                help_win=curses.newwin(15, width-2, 2, 2)
+                #crea una finestra per la visualizzazione delle opzioni al centro dello schermo stampando
+                #una lista di opzioni
+                optionshelp=["Press 'S' Statistics of the Match",
+                             "Press 'A' Analyze Match only preloaded",
+                             "Press 'O' Load Odds","Press 'R' Refresh",
+                             "Press 'P' Prediction Basic",
+                             "Press 'G' Prediction Teams goals",
+                             "Press 'D' Prediction DC only prevision",
+                             "Press 'E' Prediction Expected Results",
+                             "Press 'H' Help",
+                             "Press 'Q' Exit"]
+                start_y=(height-len(optionshelp))//2
+                start_x=(width-max(len(x) for x in optionshelp))//2
+                help_win=curses.newwin(len(optionshelp)+2, max(len(x) for x in optionshelp)+2, start_y, start_x)
                 help_win.box()
-                help_win.bkgd(curses.color_pair(8))
+                help_win.bkgd(curses.color_pair(11))
+                for ri,so in enumerate(optionshelp):
+                    help_win.addstr(ri+1, 1, so)
                 help_win.addstr(0, 2, "HOT KEYS")
-                help_win.addstr(2, 1, "Press 'S' Statistics of the Match")
-                help_win.addstr(3, 1, "Press 'A' Analyze Match only preloaded")
-                help_win.addstr(4, 1, "Press 'O' Load Odds")
-                help_win.addstr(5, 1, "Press 'R' Refresh")
-                help_win.addstr(6, 1, "Press 'P' Prediction Basic")
-                help_win.addstr(7, 1, "Press 'G' Prediction Teams goals")
-                help_win.addstr(8, 1, "Press 'D' Prediction DC only prevision")
-                help_win.addstr(9, 1, "Press 'H' Help")
-                help_win.addstr(12, 1, "Press 'Q' Exit")
-                help_win.addstr(11, 1, "Press 'ARROW UP/DOWN' to scroll text")
-                help_win.addstr(10, 1, "Press 'F' Formations Start 11")
                 help_win.refresh()
+
                 while True:
                     pausekey=screen.getch() #fa una pausa
                     if pausekey==ord("q"):
