@@ -294,7 +294,9 @@ class Prediction():
             Riassumi sempre tutti i tuoi pronostici alla fine in un tag finele tra parentesi [] esempio se dici 1X e possibile GG scrivi P[1X+GG] o 
             sempre esempio P[X2+NG+U2.5] oppure ancora P[X] in modo che possa recuperali nel testo. Grazie contro su si te.
             Fornisci sempre un solo pronostico e non un usare mai nel testo le parentesi quadre se non esclusivamente per generare il risultato come ti ho chiesto,
-            ed all'interno delle parentesi non aggiungere decorazioni come asterisci o altro non necessario per permettere la lettura ad una funzione esterna."""
+            ed all'interno delle parentesi non aggiungere decorazioni come asterisci o altro non necessario per permettere la lettura ad una funzione esterna.
+            Formatta il tutto utilizzando schemi e tabelle in stile simil markdown.
+            """
         #probabilita di segnare di ogni squadra
         content2=f"""
             Analizzare le probabilità di {squadra1} di segnare quanti gol nella partita e anche di {squadra2}. 
@@ -315,7 +317,9 @@ class Prediction():
             sintetizza con la formula [S1-1] oppure [S1-numero_di_gol:percentuale_di_probabilita] e se la squadra ospite [S2-numeroi_di_gol:percetuale_di_probabilita],
             per tanto ad esempio se prevedi che la squadra di casa segni 1 gol sintetizza con la formula [S1-1:70%] e se la squadra ospite [S2-0:65%], oltertutto se 
             vuoi segnalare entambe preferisco che il risultato sia sempre sintetizzato come [S1-1:70%,S2-0:65%], la cosa importante
-            e che tieni in considerazione solo percentuali superiori o uguali a 65%
+            e che tieni in considerazione solo percentuali superiori o uguali a 65%.
+            Descrivi tutto in formato simil markdown e crea una tabella con tutti le possibili probabilita di numero di gol 
+            segnati da ogni squadra.
             """
         content3=f"""
             Dato le statistiche delle squadre {squadra1} e {squadra2}, calcola la probabilità di vittoria di una delle due squadre utilizzando solo la doppia chance. Ad esempio, 
@@ -878,10 +882,13 @@ class Winmenu:
                 footer_win.bkgd(curses.color_pair(5))
                 footer_win.addstr(0,3,"PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
                 footer_win.refresh()
-                pred_win=curses.newwin(15,width-2,2,2)
+                pred_win_row=20
+                pred_win_col=width-2
+                pred_win=curses.newwin(pred_win_row, pred_win_col, 2, 2)
                 pred_win.box()
-                pred_win.bkgd(curses.color_pair(5))
+                pred_win.bkgd(curses.color_pair(5))           
                 pred_win_x,pred_win_y=pred_win.getmaxyx()
+                pred_pad=curses.newpad(200,pred_win_y)
                 pred_win.addstr(1, 1, f"Analize Match...: {self.events[selected].teamhome} vs {self.events[selected].teamaway}")
                 pred_win.refresh()
                 #inizia la predizione
@@ -898,15 +905,7 @@ class Winmenu:
                             ' '.join(t["form"]),t["status"]]
                         self.classifica.append(row)
                 tabclassifica=tabulate(self.classifica,headers="firstrow")
-                
-                # match key:
-                #     case ord('p'):
-                #         predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
-                #     case ord('g'):
-                #         predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=2)
-                #     case ord('d'):
-                #         predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=3)
-                                 
+                               
                 if key==ord('p'):
                     #chiamata GPT mode 1
                     predizione=Prediction.gpt_call(tabclassifica,self.events[selected].teamhome,self.events[selected].teamaway,self.events[selected].odd)
@@ -919,35 +918,28 @@ class Winmenu:
                 elif key==ord('e'):
                     #chiamata GPT mode 4
                     predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=4)
+                
                 self.events[selected].analize=predizione
-                predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
+                #predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
                 self.events[selected].pronostic=Prediction.compactOdds(predizione)
                 #salva/aggiorna la predizione sul server
                 upload_save_prediction(self.events[selected].idfixture,self.events[selected].pronostic,predizione)
-                options=self.formatta_liste(self.events)
-
-                altezza = min(len(predictiontext), pred_win_x - 2)
-                start_index=0
+        
+                pred_pad.addstr(predizione)
+                rpad,cpad=0,0
                 while True:
-                    # Visualizza le righe correnti
-                    for i in range(altezza):
-                        if start_index + i < len(predictiontext):
-                            pred_win.addstr(i + 1, 1, predictiontext[start_index + i][:width - 4])
-                    pred_win.refresh()
+                    pred_pad.refresh(rpad,cpad,3,3,pred_win_row-1,pred_win_col-1)
                     # Attendi l'input dell'utente
                     tasto = screen.getch()
 
                     # Gestisci gli input delle frecce
-                    if tasto == curses.KEY_UP:
-                        start_index = max(0, start_index - 1)
-                        pred_win.clear()
-                        pred_win.box()
-                    elif tasto == curses.KEY_DOWN:
-                        start_index = min(len(predictiontext) - altezza, start_index + 1)
-                        pred_win.clear()
-                        pred_win.box()
+                    if tasto == curses.KEY_UP and rpad>0:
+                        rpad-=1
+                    elif tasto == curses.KEY_DOWN and rpad < 199:
+                        rpad+=1
                     elif tasto == ord('q'):  # Per uscire, premi 'q'
                         pred_win.erase()
+                        pred_pad.erase()
                         screen.clear()
                         break
             #carica le quote per tutti gli eventi selezionati
