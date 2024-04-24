@@ -59,25 +59,32 @@ You can use the following options to interact with the application:
 
 You can use the following league codes to access information for the desired football leagues using the application:
 
-| Codice | Campionato |
-|--------|------------|
-| SA | Italy Serie A |
-| PL | England Premier League |
-| BL | Germany Bundesliga |
-| LIGA | Spain La Liga |
-| L1 | France Ligue 1 |
-| ER | Netherlands Eredivisie |
-| SL | Turkey Süper Lig |
-| PPL | Portugal Primeira Liga |
-| UCL | UEFA Champions League Cup |
-| UEL | UEFA Europa League Cup |
-| UECL | UEFA Europa Conference League |
-| SB | Italy Serie B |
-| JUP | Belgium Jupiler League |
-| SLD | Denmark Superliga |
-| BLA | Austria Bundesliga |
-| SLG | Greek Super League |
-| LIVE | Live all Match of the day |
+| Codice | Campionato                           |
+|--------|--------------------------------------|
+| SA     | Italy Serie A                        |
+| PL     | England Premier League               |
+| BL     | Germany Bundesliga                   |
+| LIGA   | Spain La Liga                        |
+| L1     | France Ligue 1                       |
+| ER     | Netherlands Eredivisie               |
+| SL     | Turkey Süper Lig                     |
+| PPL    | Portugal Primeira Liga               |
+| UCL    | UEFA Champions League Cup            |
+| UEL    | UEFA Europa League Cup               |
+| UECL   | UEFA Europa Conference League        |
+| SB     | Italy Serie B                        |
+| SC-A   | Italy Serie C Girone A               |
+| SC-B   | Italy Serie C Girone B               |
+| SC-C   | Italy Serie C Girone C               |
+| JUP    | Belgium Jupiler League               |
+| SLD    | Denmark Superliga                    |
+| BLA    | Austria Bundesliga                   |
+| SLG    | Greek Super League                   |
+| J1     | Japan J1 League                      |
+| SAB    | Brazil Serie A                       |
+| MLS    | USA Major League Soccer              |
+| SPL    | Saudi-Arabia Pro League              |
+| LIVE   | Live all Match of the day            |
 
 Use these codes to view results, standings, and fixtures for your desired football leagues.
 
