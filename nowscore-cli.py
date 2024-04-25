@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.42.5"
+version="0.43"
 
 import argparse
 import datetime
@@ -284,7 +284,16 @@ class Prediction():
             il 65% segnalalo.
             Tendi ad evitare di suggeriri risultati fissi come 1 o X o 2 singoli, a meno che non altamente probabili, ma 
             cerca di essere prudente quando coprendo i pronostici con doppie tipo 1X o X2 sempre se abbastanza probabili. 
-            Ma tendenzialmente suggerisci spesso
+            Dopo aver fatto uno schema di analisi generale,
+            se riesci crea una tabella comparativa delle due squadre a confronto con tutti i dati che prendi in analisi,
+            ma nel costruire eventuale tabella usa sempre abbreviazioni per gli headers dei valori che stai indicando in modo da non 
+            generare una tabella ricca ma formattata bene,esempio PUNTI usa P oppure tipo mediaGol fatti in casa MGH e fuoricasa MGA,
+            confronto di posizione in classifica posto in classifica POS_C, e via discorrendo. Abbrevia tu il resto hai capito cosa intendo.
+            Magari dopo la tabella crea se vuoi, 
+            una legenda dei headers delle stats che hai sintetizzato e che potrebbero non essere chiari,
+            ma non specificare mai il testo degli headers completi nella tabella ma solo le abbreviazioni, 
+            questo e' molto importante.
+            Poi tendenzialmente suggerisci spesso
             risultati sui gol e sul numero di gol o sul possibile gol di una squadra che gioca, sempre tenendo 
             conto delle difese avversarie e della media di subire gol nel rispettivo campo.
             Cerca sempre di tenerti cauto nelle previsioni ammeno che non 
@@ -318,7 +327,7 @@ class Prediction():
             per tanto ad esempio se prevedi che la squadra di casa segni 1 gol sintetizza con la formula [S1-1:70%] e se la squadra ospite [S2-0:65%], oltertutto se 
             vuoi segnalare entambe preferisco che il risultato sia sempre sintetizzato come [S1-1:70%,S2-0:65%], la cosa importante
             e che tieni in considerazione solo percentuali superiori o uguali a 65%.
-            Descrivi tutto in formato simil markdown e crea una tabella con tutti le possibili probabilita di numero di gol 
+            Descrivi tutto in formato simil markdown e crea delle tabelle con tutti le possibili probabilita di numero di gol 
             segnati da ogni squadra.
             """
         content3=f"""
@@ -327,6 +336,8 @@ class Prediction():
             la doppia chance 1X e della squadra {squadra2} con la doppia chance X2. 
             Sintetizza il risultato nella formila tra parentesi quadre DC[risultato] dove risultato puo essere 1X 12 X2,
             e non aggiungere altro nelle parentesi qaudre in modo che possa essere letto da una funzione esterna.
+            Crea una tabella dei risultati possobili doppia chance ovvero 1X 12 X2 con le relative probabilita ed eventuali quote scommesse.
+            stile markdown
             """
         #prompt che mi restituisca il risultato esatto
         content4=f"""
@@ -344,7 +355,7 @@ class Prediction():
             più probabili o che offrono il miglior valore in termini di scommessa. Riassumi il tuo pronostico finale 
             in una formula sintetica, ad esempio [RE:2-1], che possa essere facilmente interpretata. 
             O anche eventualmente piu di un risultato esatto se lo ritieni altamente probabile come [RE:2-1,1-2] ma l'unica condizione e che sia sempre sintetizzato come [RE:risultato_esatto1,risultato_esatto2,risultato_esatto3,..].
-
+            Anche qui stilizza una tabella dei possibili risultati esatti in style markdown
             """
         #on selction on user compose pormpt by set mode parameter
         #content+=content1 if mode==1 else content2
@@ -600,7 +611,6 @@ class Winmenu:
                     "GERMANY":"🇩🇪",
                     "GREECE":"🇬🇷",
                     "MEXICO":"🇲🇽",
-                    "MOROCCO":"🇲🇦",
                     "NETHERLANDS":"🇳🇱",
                     "POLAND":"🇵🇱",
                     "PORTUGAL":"🇵🇹",
@@ -609,11 +619,44 @@ class Winmenu:
                     "TURKEY":"🇹🇷",
                     "ITALY":"🇮🇹",
                     "USA":"🇺🇸",
-                    "JAPAN":"🇯🇵",
-                    "INDONESIA":"🇮🇩",
                     "CHILE":"🇨🇱",
                     "CHINA":"🇨🇳",
                     "AUSTRIA":"🇦🇹",
+                    "ALBANIA":"🇦🇱",
+                    "BULGARIA":"🇧🇬",
+                    #tutte le nazioni africane
+                    "NIGERIA":"🇳🇬",
+                    "EGYPT":"🇪🇬",
+                    "TANZANIA":"🇹🇿",
+                    "KENYA":"🇰🇪",
+                    "UGANDA":"🇺🇬",
+                    "DRC":"🇩🇲",
+                    "SOMALIA":"🇸🇴",
+                    "ETHIOPIA":"🇪🇹",
+                    "MOROCCO":"🇲🇦",
+                    "SUDAN":"🇸🇩",
+                    "CAMERUN":"🇨🇲",
+                    "MALI":"🇲🇱",
+                    "SENEGAL":"🇸🇳",
+                    "TUNISIA":"🇹🇳",
+                    #tutte le nazioni asiatiche   
+                    "INDIA":"🇮🇳",
+                    "PAKISTAN":"🇵🇰",
+                    "BANGLADESH":"🇧🇩",
+                    "MYANMAR":"🇲🇲",
+                    "JAPAN":"🇯🇵",
+                    "CHINA":"🇨🇳",
+                    "SOUTH-KOREA":"🇰🇷",
+                    "VIETNAM":"🇻🇳",
+                    "MONGOLIA":"🇲🇳",
+                    "THAILAND":"🇹🇭",
+                    "PHILIPPINES":"🇵🇭",
+                    "INDONESIA":"🇮🇩",
+                    "MALAYSIA":"🇲🇾",
+                    "SINGAPORE":"🇸🇬",
+                    "CYPRUS":"🇨🇾",
+                    "TURKIY":"🇹🇷",
+                    "UKRAINE":"🇺🇦",
                     "WORLD":"🌍"}
         # Per ogni lista nella lista di liste
         for lista in liste:
@@ -883,12 +926,13 @@ class Winmenu:
                 footer_win.addstr(0,3,"PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
                 footer_win.refresh()
                 pred_win_row=20
-                pred_win_col=width-2
-                pred_win=curses.newwin(pred_win_row, pred_win_col, 2, 2)
+                pred_win_col=width-4
+                pred_win=curses.newwin(pred_win_row, pred_win_col, 3, 3)
                 pred_win.box()
                 pred_win.bkgd(curses.color_pair(5))           
                 pred_win_x,pred_win_y=pred_win.getmaxyx()
-                pred_pad=curses.newpad(200,pred_win_y)
+                max_pad_row=150
+                pred_pad=curses.newpad(max_pad_row,pred_win_y-2)
                 pred_win.addstr(1, 1, f"Analize Match...: {self.events[selected].teamhome} vs {self.events[selected].teamaway}")
                 pred_win.refresh()
                 #inizia la predizione
@@ -924,18 +968,18 @@ class Winmenu:
                 self.events[selected].pronostic=Prediction.compactOdds(predizione)
                 #salva/aggiorna la predizione sul server
                 upload_save_prediction(self.events[selected].idfixture,self.events[selected].pronostic,predizione)
-        
+                pred_pad.bkgd(curses.color_pair(5))
                 pred_pad.addstr(predizione)
                 rpad,cpad=0,0
                 while True:
-                    pred_pad.refresh(rpad,cpad,3,3,pred_win_row-1,pred_win_col-1)
+                    pred_pad.refresh(rpad,cpad,4,4,pred_win_x+1,pred_win_y+1)
                     # Attendi l'input dell'utente
                     tasto = screen.getch()
 
                     # Gestisci gli input delle frecce
                     if tasto == curses.KEY_UP and rpad>0:
                         rpad-=1
-                    elif tasto == curses.KEY_DOWN and rpad < 199:
+                    elif tasto == curses.KEY_DOWN and rpad < max_pad_row-1:
                         rpad+=1
                     elif tasto == ord('q'):  # Per uscire, premi 'q'
                         pred_win.erase()
@@ -996,38 +1040,35 @@ class Winmenu:
                 footer_win.bkgd(curses.color_pair(7))
                 footer_win.addstr(0, 3, "PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
                 footer_win.refresh()
-                pred_win=curses.newwin(15,width-2,2,2)
+                pred_win_row=20
+                pred_win_col=width-4
+                pred_win=curses.newwin(pred_win_row, pred_win_col, 3, 3)
                 pred_win.box()
-                pred_win.bkgd(curses.color_pair(10))
+                pred_win.bkgd(curses.A_REVERSE)
+                pred_win.refresh()         
                 pred_win_x,pred_win_y=pred_win.getmaxyx()
-                pred_win.refresh()
-                predictiontext=self.giustifica_testo(self.events[selected].analize,pred_win_y-4)
-                #options=self.formatta_liste(self.events)
-
-                altezza = min(len(predictiontext), pred_win_x - 2)
-                start_index=0
+                max_pad_row=150
+                pred_pad=curses.newpad(max_pad_row,pred_win_y-2)
+                predictiontext=self.events[selected].analize
+                pred_pad.bkgd(curses.A_REVERSE)
+                pred_pad.addstr(predictiontext)
+                rpad,cpad=0,0
                 while True:
-                    # Visualizza le righe correnti
-                    for i in range(altezza):
-                        if start_index + i < len(predictiontext):
-                            pred_win.addstr(i + 1, 1, predictiontext[start_index + i][:width - 4])
-                    pred_win.refresh()
+                    pred_pad.refresh(rpad,cpad,4,4,pred_win_x+1,pred_win_y+1)
                     # Attendi l'input dell'utente
                     tasto = screen.getch()
 
                     # Gestisci gli input delle frecce
-                    if tasto == curses.KEY_UP:
-                        start_index = max(0, start_index - 1)
-                        pred_win.clear()
-                        pred_win.box()
-                    elif tasto == curses.KEY_DOWN:
-                        start_index = min(len(predictiontext) - altezza, start_index + 1)
-                        pred_win.clear()
-                        pred_win.box()
+                    if tasto == curses.KEY_UP and rpad>0:
+                        rpad-=1
+                    elif tasto == curses.KEY_DOWN and rpad < max_pad_row-1:
+                        rpad+=1
                     elif tasto == ord('q'):  # Per uscire, premi 'q'
                         pred_win.erase()
+                        pred_pad.erase()
                         screen.clear()
                         break
+
             elif (key == ord("h")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(8))
