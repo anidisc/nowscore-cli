@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.43"
+version="0.44"
 
 import argparse
 import datetime
@@ -28,6 +28,9 @@ apikey1file="rapidkey1.key"
 openaikeyfile="openai.key"
 
 predictionfile="predictions_history.json"
+
+#is the max char to view syntetize prediction
+maxlenprediction=20
 
 # Apri il file in modalità lettura
 with open(apikey1file, 'r') as file:
@@ -409,7 +412,7 @@ def get_match_odds(idleague,date):
     querystring = {"league":idleague,
                     "season":"2023",
                     "date":date,
-                    "bookmaker":"6"}
+                    "bookmaker":"1"}
 
     headers = {
         "X-RapidAPI-Key": apikey,
@@ -572,7 +575,7 @@ def load_saved_prediction(event):
                 load = [load]  # Se è un dizionario, convertilo in una lista
             for p in load:
                 if p["id"]==event.idfixture:
-                    event.pronostic=p["pred"]
+                    event.pronostic=p["pred"] if isinstance(p["pred"],str) and (len(p["pred"])<=maxlenprediction-2) else "press [A] ToView"
                     event.analize=p["analize"]
         
     except FileNotFoundError:
@@ -586,6 +589,29 @@ class Winmenu:
         self.events=events
         self.title=title
         self.classifica=None
+        #inizializza il curses windows
+        self.screen=curses.initscr()
+        curses.curs_set(0)
+        curses.noecho()
+        self.screen.keypad(1)
+        curses.start_color()
+        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
+        curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
+        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
+        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
+        curses.init_pair(5, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        #pair color per segnalazione GOAL
+        curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLUE)
+        #pair color per segnalazione Yellow Card
+        curses.init_pair(8,curses.COLOR_YELLOW, curses.COLOR_BLUE)
+        #pai color per segnalazione Red Card
+        curses.init_pair(9,curses.COLOR_RED, curses.COLOR_BLUE)
+        curses.init_pair(10, curses.COLOR_CYAN, curses.COLOR_BLACK)
+        #pair color per segnalazione HELP
+        curses.init_pair(11, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        curses.init_pair(12, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        self.height, self.width = self.screen.getmaxyx()
     # Definisci una funzione che prende una lista di liste di # Definisci una funzione che prende una lista di liste di stringhe come parametro
     def formatta_liste(self,eventi):
         liste=[]
@@ -679,6 +705,24 @@ class Winmenu:
             # Restituisci la lista delle liste formattate
         return liste_formattate
 
+    def tabulate_data(self,data):
+        # Trova il numero massimo di colonne in qualsiasi riga
+        max_cols = max(len(row) for row in data)
+        # Riempie le righe mancanti con liste vuote
+        data_padded = [row + [''] * (max_cols - len(row)) for row in data]
+        # Costruisce l'intestazione per la tabella
+        headers = [''] * max_cols
+        # Tabula i dati
+        #table = tabulate2.tabulate(data_padded, headers=headers, tablefmt='plain')
+        table=tabulate(data_padded, headers=headers, tablefmt='plain')
+        # # Splitta la tabella in righe
+        # table_lines = table.split('\n')
+        # # Trova la lunghezza massima di qualsiasi riga
+        # max_length = max(len(line) for line in table_lines)
+        # # Riempie le righe mancanti con spazi vuoti per uniformare la lunghezza
+        # table_lines_padded = [line.ljust(max_length) for line in table_lines]
+
+        return table
     def tabulate_strings(self,data):
         # Trova il numero massimo di colonne in qualsiasi riga
         max_cols = max(len(row) for row in data)
@@ -687,9 +731,12 @@ class Winmenu:
         # Costruisce l'intestazione per la tabella
         headers = [''] * max_cols
         # Tabula i dati
-        table = tabulate2.tabulate(data_padded, headers=headers, tablefmt='plain')
+        table = tabulate2.tabulate(data_padded, headers="firstrow", tablefmt='simple')
         # Splitta la tabella in righe
         table_lines = table.split('\n')
+        #rimuove il '\n' finale alla fine di ogni riga
+        table_lines=[line.replace("\n","") for line in table_lines]
+        
         # Trova la lunghezza massima di qualsiasi riga
         max_length = max(len(line) for line in table_lines)
         # Riempie le righe mancanti con spazi vuoti per uniformare la lunghezza
@@ -697,6 +744,7 @@ class Winmenu:
 
         return table_lines_padded
     # giustifica un testo lungo e ne restuisce una lista di stringhe
+    #TODO: da rivedere perchè non funziona correttamente deve essere rivista o eliminata
     def giustifica_testo(self, testo, lunghezza):
         parole = testo.split()
         righe = []
@@ -745,36 +793,51 @@ class Winmenu:
                     return True  # Restituisce True al primo ritrovamento
         # Se nessuna delle parole chiave viene trovata, restituisce False
         return False
+    #creare una funzione che crean una finestrra nello schermo nelle cordinate e la dimensione da specificare con la coppia colori da specificare e il testo da visualizzare
+    def create_window(self,y,x,row,col,virtualscreenRow,virtualscreenCol,color_pair,text,title="",control_scroll=True):
+        win=curses.newwin(row,col,y,x)
+        win.bkgd(curses.color_pair(color_pair))
+        win.box()
+        if title != "":
+            win.addstr(0,(len(title)+col)//2-len(title),f"[ {title.upper()} ]")
+        win.refresh()
+        pad=curses.newpad(virtualscreenRow,virtualscreenCol)
+        pad.bkgd(curses.color_pair(color_pair))
+        pad.addstr(text)
+        if not control_scroll:
+            pad.refresh(0,0,y+1,x+1,y+row-2,x+col-2)
+            return pad
+        #definiamo il pad all'interno del box win
+        xpad=0
+        ypad=0
+        #ciclo di controllo scroll
+        while True:
+            pad.refresh(ypad,xpad,y+1,x+1,y+row-2,x+col-2)
 
+            key=self.screen.getch()
+            if key==curses.KEY_UP and ypad>0:
+                ypad-=1
+            elif key==curses.KEY_DOWN and ypad<virtualscreenRow:
+                ypad+=1
+            elif key==curses.KEY_LEFT and xpad>0:
+                xpad-=1
+            elif key==curses.KEY_RIGHT and xpad<virtualscreenCol:
+                xpad+=1
+            elif key==ord("q"):
+                pad.erase()
+                win.erase()
+                self.screen.clear()
+                break
+            pad.refresh(0,0,y+1,x+1,y+row-2,x+col-2)
+        return pad
     #display menu della lista eventi e ne processa le varie sotto-opzioni
     def menu(self):        
         options=self.formatta_liste(self.events)
-        screen=curses.initscr()
-        curses.curs_set(0)
-        curses.noecho()
-        screen.keypad(1)
-        curses.start_color()
-        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
-        curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
-        curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
-        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_YELLOW)
-        curses.init_pair(5, curses.COLOR_GREEN, curses.COLOR_BLACK)
-        curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-        #pair color per segnalazione GOAL
-        curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLUE)
-        #pair color per segnalazione Yellow Card
-        curses.init_pair(8,curses.COLOR_YELLOW, curses.COLOR_BLUE)
-        #pai color per segnalazione Red Card
-        curses.init_pair(9,curses.COLOR_RED, curses.COLOR_BLUE)
-        curses.init_pair(10, curses.COLOR_CYAN, curses.COLOR_BLACK)
-        #pair color per segnalazione HELP
-        curses.init_pair(11, curses.COLOR_WHITE, curses.COLOR_BLACK)
-        height, width = screen.getmaxyx()
-        seth=len(options)+2 if (len(options)+3)<height else height-3
-        #setw=len(max(options))+15 if (len(max(options))+15<width-2) else width-2
+        
+        seth=len(options)+2 if (len(options)+3)<self.height else self.height-3
 
         menu_items = len(options)
-        max_items = height - 5
+        max_items = self.height - 5
 
         if menu_items > max_items:
             scroll_offset = 0
@@ -782,26 +845,27 @@ class Winmenu:
         else:
             scroll_offset = 0
             selected = -1
+        
+        header_win = curses.newwin(1,self.width,0,0)
+        footer_win=curses.newwin(1,self.width,self.height-1,0)
+        info_win=curses.newwin(1,self.width,seth+1,0)
+        menu_win=curses.newwin(seth,len(max(options))+maxlenprediction,1,2)
+
         while True:
-            #screen.clear()
-            #header striscia titolo eventi scelti
-            header_win = curses.newwin(1,width,0,0)
+            header_win.clear()
+            footer_win.clear()
             header_win.bkgd(curses.color_pair(2))
             header_win.addstr(0,5, self.title)
-            #main box menu
-            #menu_win = curses.newwin(seth, setw, 1, 5)
-            menu_win=curses.newwin(seth,width-2,1,2)
-            menu_win.box()
-            #footer stricia messaggi di aiutoq
-            footer_win=curses.newwin(1,width,height-1,0)
             footer_win.bkgd(curses.color_pair(2))
             try:
                 footer_win.addstr(0,3,"PRESS: [Q]uit - [F]orm.Start11 -" 
-                                  "[S]tats match - [<-|]data - [P]redictions - "
-                                  "[R]efresh - [O]dds - [A]nalized")
+                                   "[S]tats match - [<-|]data - [P]redictions - "
+                                "[R]efresh - [O]dds - [A]nalized")
             except:
-                footer_win.clear()
                 footer_win.addstr(0,3,"PRESS: '[Q]uit - [H]elp")
+
+            menu_win.box()
+            options=self.formatta_liste(self.events)
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
                 if i == selected - scroll_offset:
                     menu_win.attron(curses.color_pair(1))
@@ -809,20 +873,20 @@ class Winmenu:
                     menu_win.attroff(curses.color_pair(1))
                 menu_win.addstr(1 + i, 2, option)
             #striscia di informazioni plus sul match
-            info_win=curses.newwin(1,width,seth+1,0)
+            
             info_win.bkgd(curses.color_pair(6))
             try:
                 info_win.addstr(0,5,f"City: {self.events[selected].location} | Stadium: {self.events[selected].stadium} |  Ref: {self.events[selected].referee}")
             except:
                 info_win.clear()
-                info_win.addstr(0,5,"No space ti show info!")
-            screen.refresh()
+                info_win.addstr(0,5,"No space to show info!")
+            self.screen.refresh()
             menu_win.refresh()
             header_win.refresh()
             footer_win.refresh()
             info_win.refresh()
-
-            key = screen.getch()
+            menu_win.attroff(curses.color_pair(1))
+            key = self.screen.getch()
 
             if key == curses.KEY_UP:
                 if selected > 0:
@@ -838,7 +902,7 @@ class Winmenu:
             elif (key == ord("\n") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
                 selected_item = options[selected]
                 data=self.events[selected].flow_events()
-                data_win = curses.newwin(len(data)+3,width-5,4,4)
+                data_win = curses.newwin(len(data)+3,self.width-5,4,4)
                 data_win.box()
                 data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
                 header_win.clear()
@@ -860,10 +924,10 @@ class Winmenu:
                 header_win.refresh()
                 footer_win.refresh()
                 while True:
-                    pausekey=screen.getch() #fa una pausa
+                    pausekey=self.screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         data_win.erase()
-                        screen.clear()
+                        self.screen.clear()
                         break
             #selezione start 11 line up
             elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
@@ -885,16 +949,16 @@ class Winmenu:
                 header_win.refresh()
                 footer_win.refresh()
                 while True:
-                    pausekey=screen.getch() #fa una pausa
+                    pausekey=self.screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         form_win.erase()
-                        screen.clear()
+                        self.screen.clear()
                         break
             #finestra di stampa statistiche partite
             elif (key == ord("s") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST") ):
-                form_win=curses.newwin(23,60,2,2)
-                form_win.box()
-                form_win.bkgd(curses.color_pair(4))
+                # form_win=curses.newwin(23,60,2,2)
+                # form_win.box()
+                # form_win.bkgd(curses.color_pair(4))
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(4))
                 header_win.addstr(0,3,f"Match Statistic between {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
@@ -902,19 +966,11 @@ class Winmenu:
                 footer_win.bkgd(curses.color_pair(4))
                 footer_win.addstr(0,3,"PRESS 'q' to close")
                 dataf=self.events[selected].list_statistic()
-                tablef=self.tabulate_strings(dataf)
-                for r,line in enumerate(tablef):
-                    form_win.addstr(r+1,2,line)
-                form_win.refresh()
-                header_win.refresh()
-                footer_win.refresh()
-                while True:
-                    pausekey=screen.getch() #fa una pausa
-                    if pausekey==ord("q"):
-                        form_win.erase()
-                        screen.clear()
-                        #screen.refresh()
-                        break
+                tablef=self.tabulate_data(dataf)
+      
+                self.create_window(5,2,25,60,80,100,4,tablef,title="Stats of the match")
+                self.screen.clear()
+
             #richiesta previsioni betting e confronto
             elif ((key == ord("p") or (key==ord('g') or (key==ord('d')or (key==ord('e'))))) and (self.events[selected].status == "NS")):
                 header_win.clear()
@@ -925,15 +981,11 @@ class Winmenu:
                 footer_win.bkgd(curses.color_pair(5))
                 footer_win.addstr(0,3,"PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
                 footer_win.refresh()
-                pred_win_row=20
-                pred_win_col=width-4
-                pred_win=curses.newwin(pred_win_row, pred_win_col, 3, 3)
+                title=f"Analize Match...: {self.events[selected].teamhome} vs {self.events[selected].teamaway}"
+                pred_win=curses.newwin(3,len(title)+2,self.height//2,self.width//2-(len(title)//2))
                 pred_win.box()
                 pred_win.bkgd(curses.color_pair(5))           
-                pred_win_x,pred_win_y=pred_win.getmaxyx()
-                max_pad_row=150
-                pred_pad=curses.newpad(max_pad_row,pred_win_y-2)
-                pred_win.addstr(1, 1, f"Analize Match...: {self.events[selected].teamhome} vs {self.events[selected].teamaway}")
+                pred_win.addstr(1, 1, title)
                 pred_win.refresh()
                 #inizia la predizione
                 if self.classifica == None :
@@ -964,35 +1016,19 @@ class Winmenu:
                     predizione=Prediction.gpt_call(tabclassifica, self.events[selected].teamhome, self.events[selected].teamaway, self.events[selected].odd,mode=4)
                 
                 self.events[selected].analize=predizione
-                #predictiontext=self.giustifica_testo(predizione,pred_win_y-4)
                 self.events[selected].pronostic=Prediction.compactOdds(predizione)
                 #salva/aggiorna la predizione sul server
                 upload_save_prediction(self.events[selected].idfixture,self.events[selected].pronostic,predizione)
-                pred_pad.bkgd(curses.color_pair(5))
-                pred_pad.addstr(predizione)
-                rpad,cpad=0,0
-                while True:
-                    pred_pad.refresh(rpad,cpad,4,4,pred_win_x+1,pred_win_y+1)
-                    # Attendi l'input dell'utente
-                    tasto = screen.getch()
-
-                    # Gestisci gli input delle frecce
-                    if tasto == curses.KEY_UP and rpad>0:
-                        rpad-=1
-                    elif tasto == curses.KEY_DOWN and rpad < max_pad_row-1:
-                        rpad+=1
-                    elif tasto == ord('q'):  # Per uscire, premi 'q'
-                        pred_win.erase()
-                        pred_pad.erase()
-                        screen.clear()
-                        break
+                self.create_window(4,4,self.height-6,self.width-6,150,self.width-10,5,predizione,title=f"Prevision: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                pred_win.erase()
             #carica le quote per tutti gli eventi selezionati
             elif (key == ord("o") and (self.events[selected].status == "NS")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(6))
                 header_win.addstr(0, 5, f"Odds Loading...")
                 header_win.refresh()
-                odds_win=curses.newwin(3, width-2, 2, 2)
+                #draw odds window center screen
+                odds_win=curses.newwin(3, self.width-2, self.height//2-2, 2) #crea una finestra per le quote
                 odds_win.box()
                 odds_win.bkgd(curses.color_pair(6))
                 odds_win.addstr(1, 2, "LOADING ALL SELECTED ODDS...")
@@ -1011,8 +1047,13 @@ class Winmenu:
                             pl+=1
                             odds_win.clear()
                             odds_win.box()
-                            odds_win.addstr(1, 2, f"LOADING ODDS... {pl}/{len(self.events)}")
+                            # odds_win.addstr(1, 2, f"LOADING ODDS... {pl}/{len(self.events)}")
+                            # odds_win.refresh()
+                            #draw a progress bar for loading
+                            odds_win.addstr(0, 6, f"[ LOADING ODDS... {pl}/{len(self.events)} ]")
+                            odds_win.addstr(1, 2, f"{'#' * (pl*100//len(self.events))}")
                             odds_win.refresh()
+
                             #pause 1 second
                             time.sleep(1)
                             break
@@ -1021,10 +1062,10 @@ class Winmenu:
                 odds_win.addstr(1, 2, "LOADED!")
                 odds_win.refresh()                                
                 while True:
-                    pausekey=screen.getch() #fa una pausa
+                    pausekey=self.screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         odds_win.erase()
-                        screen.clear()
+                        self.screen.clear()
                         break
             #refresh option            
             elif (key == ord("r") and self.isLive(options)):
@@ -1040,34 +1081,11 @@ class Winmenu:
                 footer_win.bkgd(curses.color_pair(7))
                 footer_win.addstr(0, 3, "PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
                 footer_win.refresh()
-                pred_win_row=20
-                pred_win_col=width-4
-                pred_win=curses.newwin(pred_win_row, pred_win_col, 3, 3)
-                pred_win.box()
-                pred_win.bkgd(curses.A_REVERSE)
-                pred_win.refresh()         
-                pred_win_x,pred_win_y=pred_win.getmaxyx()
-                max_pad_row=150
-                pred_pad=curses.newpad(max_pad_row,pred_win_y-2)
-                predictiontext=self.events[selected].analize
-                pred_pad.bkgd(curses.A_REVERSE)
-                pred_pad.addstr(predictiontext)
-                rpad,cpad=0,0
-                while True:
-                    pred_pad.refresh(rpad,cpad,4,4,pred_win_x+1,pred_win_y+1)
-                    # Attendi l'input dell'utente
-                    tasto = screen.getch()
 
-                    # Gestisci gli input delle frecce
-                    if tasto == curses.KEY_UP and rpad>0:
-                        rpad-=1
-                    elif tasto == curses.KEY_DOWN and rpad < max_pad_row-1:
-                        rpad+=1
-                    elif tasto == ord('q'):  # Per uscire, premi 'q'
-                        pred_win.erase()
-                        pred_pad.erase()
-                        screen.clear()
-                        break
+                self.create_window(4,4,self.height-6,self.width-6,150,150,12,self.events[selected].analize,title=f"Analized Match between {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                header_win.erase()
+                footer_win.erase()
+                self.screen.clear()
 
             elif (key == ord("h")):
                 header_win.clear()
@@ -1087,10 +1105,12 @@ class Winmenu:
                              "Press 'G' Prediction Teams goals",
                              "Press 'D' Prediction DC only prevision",
                              "Press 'E' Prediction Expected Results",
+                             "Press 'F' Start 11 Line UP",
+                             "Press 'C' Show Standing",
                              "Press 'H' Help",
                              "Press 'Q' Exit"]
-                start_y=(height-len(optionshelp))//2
-                start_x=(width-max(len(x) for x in optionshelp))//2
+                start_y=(self.height-len(optionshelp))//2
+                start_x=(self.width-max(len(x) for x in optionshelp))//2
                 help_win=curses.newwin(len(optionshelp)+2, max(len(x) for x in optionshelp)+2, start_y, start_x)
                 help_win.box()
                 help_win.bkgd(curses.color_pair(11))
@@ -1100,20 +1120,76 @@ class Winmenu:
                 help_win.refresh()
 
                 while True:
-                    pausekey=screen.getch() #fa una pausa
+                    pausekey=self.screen.getch() #fa una pausa
                     if pausekey==ord("q"):
                         help_win.erase()
-                        screen.clear()
+                        self.screen.clear()
                         break
-            #set exit point
-            elif key == ord("q"):
-                menu_win.erase()
+            #show windows con classifica su richiesta del tasto c
+            elif key == ord("c"):
+                header_win.clear()
+                header_win.bkgd(curses.color_pair(4))
+                header_win.addstr(0, 3, f"STANDING")
+                header_win.refresh()
+                footer_win.clear()
+                footer_win.bkgd(curses.color_pair(4))
+                footer_win.addstr(0, 3, "PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
+                footer_win.refresh()
+                #genera la classifica se non è stata generata
+                if self.classifica==None:
+                    list_stand,rem=get_standing_season(self.events[selected].idleague)
+                    self.classifica=[["POS","TEAM","PO","RO","W","D","L","WH","DH","LH","WA","DA","LA","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
+                    for t in list_stand:
+                        row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
+                            t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
+                            t["home"]["win"],t["home"]["draw"],t["home"]["lose"],
+                            t["away"]["win"],t["away"]["draw"],t["away"]["lose"],
+                            t["all"]["goals"]["for"],t["all"]["goals"]["against"],
+                            t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
+                            ' '.join(t["form"]),t["status"]]
+                        self.classifica.append(row)
+                tabclassifica=self.tabulate_strings(self.classifica)
+                #stampa riga per riga la classifica nella var tabclassifica ma cambia colore di sfondo per la riga selezionata se la selezione e self.events[selected].teamhome o self.events[selected].teamaway    
+                padclassifica=curses.newpad(40,200)
+                #sfondo nero e testo bianco
+                padclassifica.bkgd(curses.color_pair(12))
+                #padclassifica.box()
+                #padclassifica.addstr(0,0,f"[ STANDING ]")
+                for r,line in enumerate(tabclassifica):
+                    if (self.events[selected].teamhome in line) or (self.events[selected].teamaway in line):
+                        padclassifica.attron(curses.A_REVERSE)
+                    else:
+                        padclassifica.attroff(curses.A_REVERSE)
+                    padclassifica.addstr(r,1,line)
+                padmaxY=len(tabclassifica)+5 if len(tabclassifica)+5<self.height-3 else self.height-3
+                
+                row=0
+                col=0
+                while True:
+                    padclassifica.refresh(row,col,4,4,padmaxY,self.width-6)
+                    #scroll control up e down
+                    pausekey=self.screen.getch()
+                    if pausekey==curses.KEY_UP and row>0:
+                        row-=1
+                    elif pausekey==curses.KEY_DOWN and row<padmaxY:
+                        row+=1
+                    elif pausekey==curses.KEY_LEFT and col>0:
+                        col-=1
+                    elif pausekey==curses.KEY_RIGHT and col<150:
+                        col+=1
+                    elif pausekey==ord("q"):
+                        padclassifica.erase()
+                        self.screen.clear()
+                        break
+            
                 header_win.erase()
                 footer_win.erase()
-                screen.clear()
-                screen.refresh()
+                self.screen.clear()
+            
+            #set exit point
+            elif key == ord("q"):
+                #exit to main 
                 curses.endwin()
-
                 return -1
 
 
