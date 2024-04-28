@@ -492,17 +492,17 @@ class Match:
             edetail=e["detail"]
             if e["type"]=="Goal":
                 if e["detail"]=="Normal Goal":
-                    edetail="GOAL ⚽" 
+                    edetail="GOAL" 
                 elif e["detail"]=="Penalty":
-                    edetail="Penalty/GOAL ⚽"
+                    edetail="Penalty/GOAL"
                 elif e["detail"]=="Missed Penalty":
-                    edetail="Missed/Penalty ❌⚽️"
+                    edetail="Missed/Penalty"
                 elif e["detail"]=="Own Goal":
-                    edetail="Own/Goal <=⚽️"
+                    edetail="Own/Goal <="
             if e["type"]=="Var":
                 edetail="VAR: "+e["detail"]
             if e["type"]=="subst":
-                edetail="🔄 "+str(e["detail"])
+                edetail=str(e["detail"])
     
 
             #aggiungi il tempo di recupero
@@ -723,7 +723,7 @@ class Winmenu:
         # table_lines_padded = [line.ljust(max_length) for line in table_lines]
 
         return table
-    def tabulate_strings(self,data):
+    def tabulate_strings(self,data,typetable="plain"):
         # Trova il numero massimo di colonne in qualsiasi riga
         max_cols = max(len(row) for row in data)
         # Riempie le righe mancanti con liste vuote
@@ -731,7 +731,7 @@ class Winmenu:
         # Costruisce l'intestazione per la tabella
         headers = [''] * max_cols
         # Tabula i dati
-        table = tabulate2.tabulate(data_padded, headers="firstrow", tablefmt='simple')
+        table = tabulate2.tabulate(data_padded, headers="firstrow", tablefmt=typetable)
         # Splitta la tabella in righe
         table_lines = table.split('\n')
         #rimuove il '\n' finale alla fine di ogni riga
@@ -902,34 +902,57 @@ class Winmenu:
             elif (key == ord("\n") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
                 selected_item = options[selected]
                 data=self.events[selected].flow_events()
-                data_win = curses.newwin(len(data)+3,self.width-5,4,4)
-                data_win.box()
-                data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
                 header_win.clear()
                 header_win.addstr(0,5,selected_item)
                 footer_win.clear()
                 footer_win.addstr(0,5,"PRESS 'q' to close")
-                table=self.tabulate_strings(data)
-                for r,line in enumerate(table):
-                    if ("GOAL" in line) or ("Own/Goal" in line):
-                        data_win.attron(curses.color_pair(7))
-                    elif "Yellow Card" in line:
-                        data_win.attron(curses.color_pair(8))
-                    elif "Red Card" in line:
-                        data_win.attron(curses.color_pair(9))
-                    else:
-                        data_win.attron(curses.color_pair(2)) #setta colore verde sullo sfondo
-                    data_win.addstr(r+1,2,line)
+                
+                table=self.tabulate_strings(data,typetable="fancy_outline")
+                
+                max_len=max([len(line) for line in table])
+                if max_len+4>self.width:
+                    max_len=self.width-1
+                data_win = curses.newwin(len(data)+5,max_len+4,2,2)
+                data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
+                data_win.box()
                 data_win.refresh()
                 header_win.refresh()
                 footer_win.refresh()
+                #creiamo una finestra di visualizzazione degli eventi pad all'interno della finestra data_win 
+                #quindi scaliamo la finestra data_win per visualizzare il pad all'interno
+                data_pad=curses.newpad(200,200)
+                data_pad.bkgd(curses.color_pair(2))
+    
+                for r,line in enumerate(table):
+                    if ("GOAL" in line) or ("Own/Goal" in line):
+                        data_pad.attron(curses.color_pair(7))
+                    elif "Yellow Card" in line:
+                        data_pad.attron(curses.color_pair(8))
+                    elif "Red Card" in line:
+                        data_pad.attron(curses.color_pair(9))
+                    else:
+                        data_pad.attron(curses.color_pair(2)) #setta colore verde sullo sfondo
+                    data_pad.addstr(r,1,line)
+                row=0
+                col=0
+
                 while True:
-                    pausekey=self.screen.getch() #fa una pausa
-                    if pausekey==ord("q"):
+                    data_pad.refresh(row,col,3,3,len(data)+5,max_len+4)
+                    key=self.screen.getch()
+                    if key==curses.KEY_UP and row>0:
+                        row-=1
+                    elif key==curses.KEY_DOWN and row<len(data)-1:
+                        row+=1
+                    elif key==curses.KEY_LEFT and col>0:
+                        col-=1
+                    elif key==curses.KEY_RIGHT and col<len(max(data)):
+                        col+=1
+                    elif key==ord("q"):
                         data_win.erase()
                         self.screen.clear()
                         break
-            #selezione start 11 line up
+    
+            # #selezione start 11 line up
             elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
                 form_win=curses.newwin(20,65,2,2)
                 form_win.box()
