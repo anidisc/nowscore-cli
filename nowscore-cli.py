@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.44"
+version="0.44.1"
 
 import argparse
 import datetime
@@ -13,9 +13,10 @@ from datetime import datetime as dateT
 import time
 from tabulate import tabulate
 import tabulate as tabulate2
-import openai
+#import openai
 import sys
 from types import SimpleNamespace
+from openai import OpenAI
 
 #init curse to blessed way
 #import blessed
@@ -260,10 +261,12 @@ class Prediction():
         
     #create a method that receive as parameter a text and call api openai whit apikey variable and retur a text as output
     def gpt_call(prompt,squadra1,squadra2,odds,mode=1):
-        openai.api_key = openaikey
-
+        #openai.api_key = openaikey
         #modulizziamo i prompt in modo da poter far scegliere all'user che tipo di pronostico vuole
-
+        #TODO: aggiungere altri tipi di pronostici
+        #TODO:rivedere la possobilita di creare un unico prompt generale che ricalcoli tutti
+        #i tipi di pronostici in modo da non dover richiamare ogni volta una nuova funzione e suddivida
+        #i tipi di pronostici in base al tipo di analisi che si vuole fare
         content=f"""Sei un analista di calcio e analizzi le partite nei dettagli, cerca di fornire un prononisto
             in base alla classifica delle due sqadre che si incontrano ovvero {squadra1} contro {squadra2}
             analizza bene nel dettaglio i punti in classifica e i gol fatti generial e subiti 
@@ -271,7 +274,11 @@ class Prediction():
             Le striscie di vittorie pareggi e sconfigge consecutive. Tieni conto anche della capacita di una squadra di fare punti 
             in casa o fuori casa basandoti sulle statistiche. Calcola una media goal fuori casa e in casa di ogni 
             squadra e basati anche su questo includi nella tua analisi generale delle possibilita'. Calcola una
-            media punti delle ultime partite giocate anche questo da tenere in conto."""
+            media punti delle ultime partite giocate anche questo da tenere in conto.
+            Crea tebelle sempre verticali di comparazione tra le due squadre e confronta i valori delle statistiche
+            che hai calcolato in modo da poter fare un pronostico piu accurato.
+            Utilizza uno stile markdown per formattare il testo e crea tabelle di confronto tra le due squadre
+            """
         #calcola il pronostico della partita semplice 1 X 2 o combo-bet
         content1="""
             Cerca di dare un pronostico sul possbile esito 1 X 2 o 1X o X2 o se ulteriormente GG se credi
@@ -301,8 +308,20 @@ class Prediction():
             conto delle difese avversarie e della media di subire gol nel rispettivo campo.
             Cerca sempre di tenerti cauto nelle previsioni ammeno che non 
             credi di averne molte probabilita in quello che prevedi non ti sbilanciare troppo.
-            Azzarda anche un probabile risultato esatto, stabilendo con che probabilta possa verificarsi.
-            Rifai questo processo almeno 10 volte e poi fai uma media di tutte le tue analisi che ti sono uscite.
+            Cosa molto importate, calcola quante partite mancano al termine del campionato e se una delle due squadre
+            si trova in una posizione di classifica che la possa portare a retrocedere o a vincere il campionato, 
+            e se ci sono altre squadre che possono influenzare il risultato finale del campionato. 
+            Probabilmente quella squadra sara' piu motivata a vincere o a non perdere, e questo potrebbe influenzare il risultato della partita, 
+            e quindi il tuo pronostico deve tenerne conto. Allo stesso modo se una squadra e' gia retrocessa o ha gia vinto il campionato, potrebbe
+            avere meno motivazione a vincere e quindi il tuo pronostico dovrebbe riflettere questa situazione, calcolando il punteggio
+            delle squadre sottostanti o soprastanti in classifica, e quindi se hanno possibilita di insidiare 
+            o compromettere la posizione di una delle due squadre in campo a fine campionato, tenendo presento
+            che un squadra che lotta per la salvezza e fortemente motivata nelle fasi finali del torneo
+            a vincere o a fare punti se pero ne ha ancora la speranza, altrimenti di solito molla. Stesso vorra
+            dire se una squadra ha magari gia vinto lo scudetto non avrea tanta tensione a vincere e potrebbe,
+            concedere qualcosa agli avversari.
+            Vanno anche considerati i posizionamenti per accedere alla coppe che in genere sono nelle prime posizioni della classifica, e che
+            quindi creano motivazioni aggiuntive per le squadre. Per tanto considera sempre la situazione generale del campionato e delle squadre
             Riassumi sempre tutti i tuoi pronostici alla fine in un tag finele tra parentesi [] esempio se dici 1X e possibile GG scrivi P[1X+GG] o 
             sempre esempio P[X2+NG+U2.5] oppure ancora P[X] in modo che possa recuperali nel testo. Grazie contro su si te.
             Fornisci sempre un solo pronostico e non un usare mai nel testo le parentesi quadre se non esclusivamente per generare il risultato come ti ho chiesto,
@@ -379,18 +398,27 @@ class Prediction():
                         che mi suggerisci. Se riesci prendi in cosiderazione anche risultati di di vittorie di una squadra o 
                         di un altra con piu goal di scarto e dammi le quotazioni vantaggiose sempre se ce
                         ne puo essere la progabilita"""
-        messages = [ {"role": "system", "content":content} ]
+        # messages = [ {"role": "system", "content":content} ]
         message = f"""data questa classifica {prompt} fammi un pronostico 
-        della partita tra {squadra1} contro {squadra2} """
-        if message:
-            messages.append(
-                {"role": "user", "content": message},
-            )
-            chat = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo", messages=messages
-            )
-        answer = chat.choices[0].message.content
-        return answer
+                della partita tra {squadra1} contro {squadra2} """
+        # if message:
+        #     messages.append(
+        #         {"role": "user", "content": message},
+        #     )
+        #     chat = openai.ChatCompletion.create(
+        #         model="gpt-3.5-turbo", messages=messages
+        #     )
+        # answer = chat.choices[0].message.content
+        client = OpenAI(api_key=apikey)
+
+        completion=client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role":"system","content":content},
+                {"role":"user","content":message}
+            ]
+        )
+        return completion.choices[0].message.content
     #definiamo un medoto che estre il pronostico e lo sintetizza 
     def compactOdds(testo):
         inizio = testo.find("[")
@@ -614,6 +642,7 @@ class Winmenu:
         self.height, self.width = self.screen.getmaxyx()
     # Definisci una funzione che prende una lista di liste di # Definisci una funzione che prende una lista di liste di stringhe come parametro
     def formatta_liste(self,eventi):
+        
         liste=[]
         for event in eventi:
             event=load_saved_prediction(event)
@@ -714,7 +743,7 @@ class Winmenu:
         headers = [''] * max_cols
         # Tabula i dati
         #table = tabulate2.tabulate(data_padded, headers=headers, tablefmt='plain')
-        table=tabulate(data_padded, headers=headers, tablefmt='plain')
+        table=tabulate(data_padded, headers=headers, tablefmt='mixed')
         # # Splitta la tabella in righe
         # table_lines = table.split('\n')
         # # Trova la lunghezza massima di qualsiasi riga
@@ -743,42 +772,7 @@ class Winmenu:
         table_lines_padded = [line.ljust(max_length) for line in table_lines]
 
         return table_lines_padded
-    # giustifica un testo lungo e ne restuisce una lista di stringhe
-    #TODO: da rivedere perchè non funziona correttamente deve essere rivista o eliminata
-    def giustifica_testo(self, testo, lunghezza):
-        parole = testo.split()
-        righe = []
-        riga_corrente = []
-        lunghezza_corrente = 0
-        
-        for parola in parole:
-            # Se la lunghezza della parola supera la lunghezza massima consentita, 
-            # va direttamente in una nuova riga
-            if len(parola) > lunghezza:
-                righe.append("".join(riga_corrente))
-                riga_corrente = []
-                lunghezza_corrente = 0
-                while len(parola) > lunghezza:
-                    righe.append(parola[:lunghezza])
-                    parola = parola[lunghezza:]
-            
-            # Se la parola non va oltre la lunghezza massima consentita nella riga corrente,
-            # la aggiungiamo e aggiorniamo la lunghezza corrente
-            if lunghezza_corrente + len(riga_corrente) + len(parola) <= lunghezza:
-                riga_corrente.append(parola)
-                lunghezza_corrente += len(parola)
-            # Altrimenti, creiamo una nuova riga con la parola
-            else:
-                righe.append(" ".join(riga_corrente))
-                riga_corrente = [parola]
-                lunghezza_corrente = len(parola)
-        
-        # Aggiungiamo l'ultima riga, se non vuota
-        if riga_corrente:
-            righe.append(" ".join(riga_corrente))
-        
-        return righe
-    #definiamo una funzione islive che stabilisce se "1H" o "2H" sono presenti nella lista di options
+     #definiamo una funzione islive che stabilisce se "1H" o "2H" sono presenti nella lista di options
     #per tanto esiste un evento live in corso
     def isLive(self,lista_di_stringhe):
         # Parole chiave da cercare
@@ -832,6 +826,10 @@ class Winmenu:
         return pad
     #display menu della lista eventi e ne processa le varie sotto-opzioni
     def menu(self):        
+        #TODO: da rivedere la funzione menu per la visualizzazione delle opzioni
+        #perche se lo schermo e troppo piccolo non visualizza correttamente le opzioni
+        #e cade in errore, si cosiglia anche qui l'uso di un pad per la visualizzazione delle opzioni
+        #e la gestione dello scroll, oppure si puo usare try except per gestire l'errore
         options=self.formatta_liste(self.events)
         
         seth=len(options)+2 if (len(options)+3)<self.height else self.height-3
@@ -855,15 +853,16 @@ class Winmenu:
             header_win.clear()
             footer_win.clear()
             header_win.bkgd(curses.color_pair(2))
-            header_win.addstr(0,5, self.title)
             footer_win.bkgd(curses.color_pair(2))
             try:
+                header_win.addstr(0,5, self.title)
                 footer_win.addstr(0,3,"PRESS: [Q]uit - [F]orm.Start11 -" 
                                    "[S]tats match - [<-|]data - [P]redictions - "
                                 "[R]efresh - [O]dds - [A]nalized")
             except:
                 footer_win.addstr(0,3,"PRESS: '[Q]uit - [H]elp")
 
+            menu_win.clear()
             menu_win.box()
             options=self.formatta_liste(self.events)
             for i, option in enumerate(options[scroll_offset:scroll_offset+max_items]):
@@ -871,7 +870,16 @@ class Winmenu:
                     menu_win.attron(curses.color_pair(1))
                 else:
                     menu_win.attroff(curses.color_pair(1))
-                menu_win.addstr(1 + i, 2, option)
+                try:
+                    menu_win.addstr(1 + i, 2, option)
+                except:
+                    menu_win.clear()
+                    menu_win.addstr(0,5,"No space to show options!")
+                    menu_win.refresh()
+                    #chiudiamo il programma alla pressione di un tasto
+                    key=self.screen.getch()
+                    exit()
+        
             #striscia di informazioni plus sul match
             
             info_win.bkgd(curses.color_pair(6))
@@ -912,10 +920,10 @@ class Winmenu:
                 max_len=max([len(line) for line in table])
                 if max_len+4>self.width:
                     max_len=self.width-1
-                data_win = curses.newwin(len(data)+5,max_len+4,2,2)
-                data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
-                data_win.box()
-                data_win.refresh()
+                # data_win = curses.newwin(len(data)+5,max_len+4,2,2)
+                # data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
+                # data_win.box()
+                # data_win.refresh()
                 header_win.refresh()
                 footer_win.refresh()
                 #creiamo una finestra di visualizzazione degli eventi pad all'interno della finestra data_win 
@@ -937,46 +945,45 @@ class Winmenu:
                 col=0
 
                 while True:
-                    data_pad.refresh(row,col,3,3,len(data)+5,max_len+4)
-                    key=self.screen.getch()
-                    if key==curses.KEY_UP and row>0:
-                        row-=1
-                    elif key==curses.KEY_DOWN and row<len(data)-1:
-                        row+=1
-                    elif key==curses.KEY_LEFT and col>0:
-                        col-=1
-                    elif key==curses.KEY_RIGHT and col<len(max(data)):
-                        col+=1
-                    elif key==ord("q"):
-                        data_win.erase()
+                    try:
+                        data_pad.refresh(row,col,3,3,len(data)+5,max_len+4)
+                        key=self.screen.getch()
+                        if key==curses.KEY_UP and row>0:
+                            row-=1
+                        elif key==curses.KEY_DOWN and row<len(data)-1:
+                            row+=1
+                        elif key==curses.KEY_LEFT and col>0:
+                            col-=1
+                        elif key==curses.KEY_RIGHT and col<len(max(data)):
+                            col+=1
+                        elif key==ord("q"):
+                            #data_win.erase()
+                            self.screen.clear()
+                            break
+                    except:
+                        data_pad.erase()
                         self.screen.clear()
+                        curses.endwin()
+                        print("Internal ERROR: To much low space to visual data")
+                        tasto=input("press any key to return selection")
                         break
+                        
     
             # #selezione start 11 line up
+            
+            #TODO: da rivedere la finestra di visualizzazione degli 11 di partenza
+            #con un pad all'interno della finestra e la gestione dello scroll 
+            #per visualizzare tutti i dati usando tabulate_strings
+            
             elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
-                form_win=curses.newwin(20,65,2,2)
-                form_win.box()
-                form_win.bkgd(curses.color_pair(3))
-                header_win.clear()
-                header_win.bkgd(curses.color_pair(3))
-                header_win.addstr(0,3,f"{self.events[selected].teamhome} VS {self.events[selected].teamaway} Start 11 Line UP")
-                footer_win.clear()
-                footer_win.bkgd(curses.color_pair(3))
-                footer_win.addstr(0,3,"PRESS: 'q' to close")
-                dataf=self.events[selected].list_start11()
-                tablef=self.tabulate_strings(dataf)
-                for r,line in enumerate(tablef):
-                    form_win.addstr(r+1,2,line)
-
-                form_win.refresh()
-                header_win.refresh()
-                footer_win.refresh()
-                while True:
-                    pausekey=self.screen.getch() #fa una pausa
-                    if pausekey==ord("q"):
-                        form_win.erase()
-                        self.screen.clear()
-                        break
+                try:
+                    dataf=self.events[selected].list_start11()
+                    tablef=self.tabulate_data(dataf)
+                    self.create_window(5,2,20,65,80,100,3,tablef,title="Start 11 Line UP")
+                    self.screen.clear()
+                except:
+                    self.create_window(5,2,6,50,50,50,3,"Error in data loading",title="Error occurred")
+                    self.screen.clear()
             #finestra di stampa statistiche partite
             elif (key == ord("s") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST") ):
                 # form_win=curses.newwin(23,60,2,2)
@@ -988,10 +995,12 @@ class Winmenu:
                 footer_win.clear()
                 footer_win.bkgd(curses.color_pair(4))
                 footer_win.addstr(0,3,"PRESS 'q' to close")
-                dataf=self.events[selected].list_statistic()
-                tablef=self.tabulate_data(dataf)
-      
-                self.create_window(5,2,25,60,80,100,4,tablef,title="Stats of the match")
+                try:
+                    dataf=self.events[selected].list_statistic()
+                    tablef=self.tabulate_data(dataf)
+                    self.create_window(5,2,self.height-7,60,80,100,4,tablef,title="Stats of the match")
+                except:
+                    self.create_window(5,2,6,50,50,50,4,"Error in data loading",title="Error occurred")
                 self.screen.clear()
 
             #richiesta previsioni betting e confronto
@@ -1045,6 +1054,8 @@ class Winmenu:
                 self.create_window(4,4,self.height-6,self.width-6,150,self.width-10,5,predizione,title=f"Prevision: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
                 pred_win.erase()
             #carica le quote per tutti gli eventi selezionati
+            #TODO: da rivedere la progress bar per il caricamento delle quote perche la progressa si 
+            #ferma prima del 100% e non si vede il completamento
             elif (key == ord("o") and (self.events[selected].status == "NS")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(6))
@@ -1078,7 +1089,7 @@ class Winmenu:
                             odds_win.refresh()
 
                             #pause 1 second
-                            time.sleep(1)
+                            time.sleep(0.7)
                             break
                 odds_win.clear()
                 odds_win.box()
@@ -1215,87 +1226,91 @@ class Winmenu:
                 curses.endwin()
                 return -1
 
+def main(stdscr):
+    if args.version:
+        print(f"NowScore - version {version}")
+        exit() #chiusura del programma dopo la visualizzazione della versione
 
-if args.version:
-    print(f"NowScore - version {version}")
-    exit() #chiusura del programma dopo la visualizzazione della versione
 
+    if (args.league!=None) and (args.league.upper() in scl):
+        if args.standing !=-1 :
+            if args.standing is None :
+                args.standing=0
 
-if (args.league!=None) and (args.league.upper() in scl):
-    if args.standing !=-1 :
-        if args.standing is None :
-            args.standing=0
-
-        list_stand,rem=get_standing_season(sc[args.league.upper()],args.standing)
-        #versione classifica semplice
-        if not (args.noshort=="noshort"):	
-            classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","FORM"]]
-            for t in list_stand:
-                row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
-                    t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
-                    t["all"]["goals"]["for"],t["all"]["goals"]["against"],
-                    ' '.join(t["form"])]
-                classifica.append(row)
-        else:
-                
-            #versione dettagliata della classifica
-            classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
-            for t in list_stand:
-                row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
-                    t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
-                    t["all"]["goals"]["for"],t["all"]["goals"]["against"],
-                    t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
-                    ' '.join(t["form"]),t["status"]]
-                classifica.append(row)
-        #stampa la classifica
-        tabclassifica=tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
-        print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
-              +tabclassifica
-              +"\n")
-        #print(Prediction.gpt_call(tabulato+" analizza questa classifica"))
-        exit()
-    else:
-        tdelta=int(args.time_delta)
-        if tdelta>=0:
-            tdeltafrom=datetime.date.today()
-            tdeltato=datetime.date.today()+datetime.timedelta(tdelta)
-        else:
-            tdeltafrom=datetime.date.today()+datetime.timedelta(tdelta)
-            tdeltato=datetime.date.today()
-        
-        selection=0
-        while selection != -1:
-
-            #verifica se viene invocata la funzione livescore di tutti i match 
-            if (args.league.upper()=="LIVE"):
-                p,rem=get_live_match()
+            list_stand,rem=get_standing_season(sc[args.league.upper()],args.standing)
+            #versione classifica semplice
+            if not (args.noshort=="noshort"):	
+                classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","FORM"]]
+                for t in list_stand:
+                    row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
+                        t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
+                        t["all"]["goals"]["for"],t["all"]["goals"]["against"],
+                        ' '.join(t["form"])]
+                    classifica.append(row)
             else:
-                p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
-            ev=[]
-            for m in p:
-                #carichiamo i dati del match nella classe
-                ev.append(Match(m["league"]["id"],m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
-                            m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
-                            m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
-                            m["fixture"]["referee"],m["fixture"]["venue"]["name"],
-                            m["fixture"]["venue"]["city"],m["league"]["country"]))
-                # voglio sapere quale e il response delléxtratime di un match 
-                ev.sort(key=lambda match: match.country)
+                    
+                #versione dettagliata della classifica
+                classifica=[["POS","TEAM","PO","RO","W","D","L","GF","GS","GFH","GSH","GFA","GSA","FORM","STATUS"]]
+                for t in list_stand:
+                    row=[t["rank"],t["team"]["name"],t["points"],t["all"]["played"],
+                        t["all"]["win"],t["all"]["draw"],t["all"]["lose"],
+                        t["all"]["goals"]["for"],t["all"]["goals"]["against"],
+                        t["home"]["goals"]["for"],t["home"]["goals"]["against"],t["away"]["goals"]["for"],t["away"]["goals"]["against"],
+                        ' '.join(t["form"]),t["status"]]
+                    classifica.append(row)
+            #stampa la classifica
+            tabclassifica=tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
+            print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
+                +tabclassifica
+                +"\n")
+            #print(Prediction.gpt_call(tabulato+" analizza questa classifica"))
+            exit()
+        else:
+            tdelta=int(args.time_delta)
+            if tdelta>=0:
+                tdeltafrom=datetime.date.today()
+                tdeltato=datetime.date.today()+datetime.timedelta(tdelta)
+            else:
+                tdeltafrom=datetime.date.today()+datetime.timedelta(tdelta)
+                tdeltato=datetime.date.today()
+            
+            selection=0
+            while selection != -1:
 
-            try:
-                selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
-                if selection == -1:
-                    print(f"NOWScore {version} richiesta di uscita dal programma!")
-                    exit()
-            except ValueError as error:
-                print(f"errore {error}")
-                key=input("non ci sono eventi da visualizzare...(press any key)")
-                break
+                #verifica se viene invocata la funzione livescore di tutti i match 
+                if (args.league.upper()=="LIVE"):
+                    p,rem=get_live_match()
+                else:
+                    p,rem=get_match_list(sc[args.league.upper()],datestart=tdeltafrom,datestop=tdeltato)
+                ev=[]
+                for m in p:
+                    #carichiamo i dati del match nella classe
+                    ev.append(Match(m["league"]["id"],m["fixture"]["id"],m["teams"]["home"]["name"],m["teams"]["away"]["name"],
+                                m["goals"]["home"],m["goals"]["away"],m["fixture"]["status"]["short"],
+                                m["fixture"]["status"]["elapsed"],m["fixture"]["date"],
+                                m["fixture"]["referee"],m["fixture"]["venue"]["name"],
+                                m["fixture"]["venue"]["city"],m["league"]["country"]))
+                    # voglio sapere quale e il response delléxtratime di un match 
+                    ev.sort(key=lambda match: match.country)
 
-try:
-    pass
-except:
-    print("non hai definito codice lega")
+                try:
+                    selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
+                    if selection == -1:
+                        print(f"NOWScore {version} richiesta di uscita dal programma!")
+                        exit()
+                except ValueError as error:
+                    print(f"errore {error}")
+                    key=input("non ci sono eventi da visualizzare...(press any key)")
+                    break
+
+    try:
+        pass
+    except:
+        print("non hai definito codice lega")
+        exit()
+
+curses.wrapper(main)
+#main()
 
 
 

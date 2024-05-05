@@ -1,4 +1,5 @@
 *.key
 test/
 predictions_history.json
-env1/
+env*/
+now_venv
