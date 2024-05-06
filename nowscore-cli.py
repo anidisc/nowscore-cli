@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.44.1"
+version="0.44.2"
 
 import argparse
 import datetime
@@ -409,7 +409,7 @@ class Prediction():
         #         model="gpt-3.5-turbo", messages=messages
         #     )
         # answer = chat.choices[0].message.content
-        client = OpenAI(api_key=apikey)
+        client = OpenAI(api_key=openaikey)
 
         completion=client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -518,21 +518,32 @@ class Match:
         tabellaeventi=[[self.teamhome,"",self.goalshome,"vs",self.goalsaway,"",self.teamaway]]
         for e in list_event:
             edetail=e["detail"]
+            abbrev={"Normal Goal":"G","Red Card":"RC","Yellow Card":"YC","subst":"SUB","Var":"V","Penalty":"P","Missed Penalty":"MP","Own Goal":"OG"}
+            icon=""
             if e["type"]=="Goal":
                 if e["detail"]=="Normal Goal":
-                    edetail="GOAL" 
+                    edetail="GOAL"
+                    icon=abbrev["Normal Goal"] 
                 elif e["detail"]=="Penalty":
                     edetail="Penalty/GOAL"
+                    icon=abbrev["Penalty"]
                 elif e["detail"]=="Missed Penalty":
                     edetail="Missed/Penalty"
+                    icon=abbrev["Missed Penalty"]
                 elif e["detail"]=="Own Goal":
                     edetail="Own/Goal <="
+                    icon=abbrev["Own Goal"]
             if e["type"]=="Var":
                 edetail="VAR: "+e["detail"]
+                icon=abbrev["Var"]
             if e["type"]=="subst":
                 edetail=str(e["detail"])
-    
-
+                icon=abbrev["subst"]
+            if e["detail"]=="Yellow Card":
+                icon=abbrev["Yellow Card"]
+            if e["detail"]=="Red Card":
+                icon=abbrev["Red Card"]
+        
             #aggiungi il tempo di recupero
             extratime=e["time"]["extra"] if e["time"]["extra"]!=None else 0
 
@@ -542,11 +553,11 @@ class Match:
                 dbrow=e["player"]["name"]
             if e["team"]["name"]==self.teamhome:
                 tabellaeventi.append([dbrow,
-                                    edetail,"",
+                                    edetail,icon,
                                     str(e["time"]["elapsed"]+extratime),"","",""])
             if e["team"]["name"]==self.teamaway:
                 tabellaeventi.append(["","","",
-                                    str(e["time"]["elapsed"]+extratime),"",
+                                    str(e["time"]["elapsed"]+extratime),icon,
                                     edetail,
                                     dbrow])
         #return tabulate(tabellaeventi,headers="firstrow")
@@ -883,10 +894,10 @@ class Winmenu:
             #striscia di informazioni plus sul match
             
             info_win.bkgd(curses.color_pair(6))
+            info_win.clear()
             try:
                 info_win.addstr(0,5,f"City: {self.events[selected].location} | Stadium: {self.events[selected].stadium} |  Ref: {self.events[selected].referee}")
             except:
-                info_win.clear()
                 info_win.addstr(0,5,"No space to show info!")
             self.screen.refresh()
             menu_win.refresh()
@@ -930,7 +941,7 @@ class Winmenu:
                 #quindi scaliamo la finestra data_win per visualizzare il pad all'interno
                 data_pad=curses.newpad(200,200)
                 data_pad.bkgd(curses.color_pair(2))
-    
+                
                 for r,line in enumerate(table):
                     if ("GOAL" in line) or ("Own/Goal" in line):
                         data_pad.attron(curses.color_pair(7))
@@ -962,10 +973,15 @@ class Winmenu:
                             break
                     except:
                         data_pad.erase()
-                        self.screen.clear()
-                        curses.endwin()
-                        print("Internal ERROR: To much low space to visual data")
-                        tasto=input("press any key to return selection")
+                        #self.screen.clear()
+                        #crea una finestra per la stampa del errore in questione in fondo allo schermo
+                        #sfondo rosso testo bianco, a -2 riche dalla fine dello schermo di 60 colonne 
+                        #per una altezza di 3 righe
+                        
+                        self.create_window(self.height-5,2,3,60,60,60,1,"Error in data loading",title="Error occurred")
+                        # curses.endwin()
+                        # print("Internal ERROR: To much low space to visual data")
+                   
                         break
                         
     
