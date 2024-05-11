@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.44.2"
+version="0.44.3"
 
 import argparse
 import datetime
@@ -17,6 +17,36 @@ import tabulate as tabulate2
 import sys
 from types import SimpleNamespace
 from openai import OpenAI
+
+from rich.console import Console
+from rich.markdown import Markdown
+
+
+import sys
+import platform
+#cattura l'input da tastiera di un singolo carattere e verifica la piattaforma per la gestione del tasto q
+def pauseKeyQ():
+    if platform.system() == 'Windows':
+        import msvcrt
+        while True:
+            if msvcrt.kbhit():
+                key = msvcrt.getch().decode('utf-8')
+                if key == 'q': break
+    else:
+        import termios
+        import tty
+        def getch():
+            fd = sys.stdin.fileno()
+            old_settings = termios.tcgetattr(fd)
+            try:
+                tty.setraw(sys.stdin.fileno())
+                ch = sys.stdin.read(1)
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+            return ch
+        while True:
+            key = getch()
+            if key == 'q': break
 
 #init curse to blessed way
 #import blessed
@@ -267,15 +297,15 @@ class Prediction():
         #TODO:rivedere la possobilita di creare un unico prompt generale che ricalcoli tutti
         #i tipi di pronostici in modo da non dover richiamare ogni volta una nuova funzione e suddivida
         #i tipi di pronostici in base al tipo di analisi che si vuole fare
-        content=f"""Sei un analista di calcio e analizzi le partite nei dettagli, cerca di fornire un prononisto
-            in base alla classifica delle due sqadre che si incontrano ovvero {squadra1} contro {squadra2}
-            analizza bene nel dettaglio i punti in classifica e i gol fatti generial e subiti 
-            e fai attenzioni ai gol fatti in casa e subiti e quelli fatti fuori casa e subiti. 
+        content=f"""Sei un analista di calcio e analizzi le partite nei dettagli, cerca di fornire un pronostico
+            in base alla classifica delle due squadre che si incontrano ovvero {squadra1} contro {squadra2}.
+            analizza bene nel dettaglio i punti in classifica e i gol generali fatti e subiti 
+            e fai attenzione ai gol fatti in casa e subiti e quelli fatti fuori casa e subiti. 
             Le striscie di vittorie pareggi e sconfigge consecutive. Tieni conto anche della capacita di una squadra di fare punti 
-            in casa o fuori casa basandoti sulle statistiche. Calcola una media goal fuori casa e in casa di ogni 
+            in casa o fuori casa basandoti sulle statistiche di ognua di esse. Calcola una media goal fuori casa e in casa di ogni 
             squadra e basati anche su questo includi nella tua analisi generale delle possibilita'. Calcola una
             media punti delle ultime partite giocate anche questo da tenere in conto.
-            Crea tebelle sempre verticali di comparazione tra le due squadre e confronta i valori delle statistiche
+            Crea tebelle sempre verticali di comparazione tra le due squadre in modello grafico markdown e confronta i valori delle statistiche
             che hai calcolato in modo da poter fare un pronostico piu accurato.
             Utilizza uno stile markdown per formattare il testo e crea tabelle di confronto tra le due squadre
             """
@@ -292,14 +322,14 @@ class Prediction():
             Basandoti sulle statistiche calcola la possibilita che la squadra di casa segni almeno 1 
             gol e fai lo stesso con la squadra che gioca fuori casa, e se ce un alta probabilita oltre 
             il 65% segnalalo.
-            Tendi ad evitare di suggeriri risultati fissi come 1 o X o 2 singoli, a meno che non altamente probabili, ma 
+            Tendi ad evitare di suggerire risultati fissi come 1 o X o 2 singoli come singolo pronostico, a meno che non altamente probabili, ma 
             cerca di essere prudente quando coprendo i pronostici con doppie tipo 1X o X2 sempre se abbastanza probabili. 
             Dopo aver fatto uno schema di analisi generale,
             se riesci crea una tabella comparativa delle due squadre a confronto con tutti i dati che prendi in analisi,
             ma nel costruire eventuale tabella usa sempre abbreviazioni per gli headers dei valori che stai indicando in modo da non 
             generare una tabella ricca ma formattata bene,esempio PUNTI usa P oppure tipo mediaGol fatti in casa MGH e fuoricasa MGA,
             confronto di posizione in classifica posto in classifica POS_C, e via discorrendo. Abbrevia tu il resto hai capito cosa intendo.
-            Magari dopo la tabella crea se vuoi, 
+            Magari dopo la tabella crea se puoi, 
             una legenda dei headers delle stats che hai sintetizzato e che potrebbero non essere chiari,
             ma non specificare mai il testo degli headers completi nella tabella ma solo le abbreviazioni, 
             questo e' molto importante.
@@ -310,10 +340,12 @@ class Prediction():
             credi di averne molte probabilita in quello che prevedi non ti sbilanciare troppo.
             Cosa molto importate, calcola quante partite mancano al termine del campionato e se una delle due squadre
             si trova in una posizione di classifica che la possa portare a retrocedere o a vincere il campionato, 
-            e se ci sono altre squadre che possono influenzare il risultato finale del campionato. 
+            e se ci sono altre squadre che insiduano come punteggio la squadra in question evidenzialla e
+            calcola che potrebbe portare preessione su di essa, che possono influenzare il risultato finale del campionato. 
             Probabilmente quella squadra sara' piu motivata a vincere o a non perdere, e questo potrebbe influenzare il risultato della partita, 
-            e quindi il tuo pronostico deve tenerne conto. Allo stesso modo se una squadra e' gia retrocessa o ha gia vinto il campionato, potrebbe
-            avere meno motivazione a vincere e quindi il tuo pronostico dovrebbe riflettere questa situazione, calcolando il punteggio
+            e quindi il tuo pronostico deve tenerne conto. Allo stesso modo se una squadra e' gia retrocessa (calcolando quante partite mancano e se matematicamente puo ancora salvarsi) o ha gia vinto il campionato
+            (fai lo stesso ragionamento matematico sulla squadra seconda in classifica), potrebbe
+            avere meno motivazione a vincere e quindi il tuo pronostico dovrebbe riflettere questa situazione. Calcolando il punteggio
             delle squadre sottostanti o soprastanti in classifica, e quindi se hanno possibilita di insidiare 
             o compromettere la posizione di una delle due squadre in campo a fine campionato, tenendo presento
             che un squadra che lotta per la salvezza e fortemente motivata nelle fasi finali del torneo
@@ -841,10 +873,15 @@ class Winmenu:
         #perche se lo schermo e troppo piccolo non visualizza correttamente le opzioni
         #e cade in errore, si cosiglia anche qui l'uso di un pad per la visualizzazione delle opzioni
         #e la gestione dello scroll, oppure si puo usare try except per gestire l'errore
-        options=self.formatta_liste(self.events)
+        #controllo se ci sono eventi altrimenti esco con codice -1
+        if len(self.events)==0:
+            curses.endwin()
+            #STAMPA MESSAGGIO DI ERRORE CON RICH
+            Console().print(Markdown(f"# No events to show today in the selected league! {self.title}"))
+            exit()
         
+        options=self.formatta_liste(self.events)
         seth=len(options)+2 if (len(options)+3)<self.height else self.height-3
-
         menu_items = len(options)
         max_items = self.height - 5
 
@@ -931,10 +968,7 @@ class Winmenu:
                 max_len=max([len(line) for line in table])
                 if max_len+4>self.width:
                     max_len=self.width-1
-                # data_win = curses.newwin(len(data)+5,max_len+4,2,2)
-                # data_win.bkgd(curses.color_pair(2)) #setta colore verde sullo sfondo
-                # data_win.box()
-                # data_win.refresh()
+
                 header_win.refresh()
                 footer_win.refresh()
                 #creiamo una finestra di visualizzazione degli eventi pad all'interno della finestra data_win 
@@ -973,24 +1007,9 @@ class Winmenu:
                             break
                     except:
                         data_pad.erase()
-                        #self.screen.clear()
-                        #crea una finestra per la stampa del errore in questione in fondo allo schermo
-                        #sfondo rosso testo bianco, a -2 riche dalla fine dello schermo di 60 colonne 
-                        #per una altezza di 3 righe
-                        
                         self.create_window(self.height-5,2,3,60,60,60,1,"Error in data loading",title="Error occurred")
-                        # curses.endwin()
-                        # print("Internal ERROR: To much low space to visual data")
-                   
                         break
-                        
-    
             # #selezione start 11 line up
-            
-            #TODO: da rivedere la finestra di visualizzazione degli 11 di partenza
-            #con un pad all'interno della finestra e la gestione dello scroll 
-            #per visualizzare tutti i dati usando tabulate_strings
-            
             elif (key == ord("f")and(self.events[selected].status != "NS") and (self.events[selected].status != "PST")):
                 try:
                     dataf=self.events[selected].list_start11()
@@ -1002,9 +1021,6 @@ class Winmenu:
                     self.screen.clear()
             #finestra di stampa statistiche partite
             elif (key == ord("s") and (self.events[selected].status != "NS") and (self.events[selected].status != "PST") ):
-                # form_win=curses.newwin(23,60,2,2)
-                # form_win.box()
-                # form_win.bkgd(curses.color_pair(4))
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(4))
                 header_win.addstr(0,3,f"Match Statistic between {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
@@ -1019,6 +1035,12 @@ class Winmenu:
                     self.create_window(5,2,6,50,50,50,4,"Error in data loading",title="Error occurred")
                 self.screen.clear()
 
+            #previsioni per incontri live
+            elif (key==ord("l")and (self.isLive(options))):
+                #TODO: scrivi codice per pronosticare eventi live
+                pass
+                
+                
             #richiesta previsioni betting e confronto
             elif ((key == ord("p") or (key==ord('g') or (key==ord('d')or (key==ord('e'))))) and (self.events[selected].status == "NS")):
                 header_win.clear()
@@ -1070,8 +1092,7 @@ class Winmenu:
                 self.create_window(4,4,self.height-6,self.width-6,150,self.width-10,5,predizione,title=f"Prevision: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
                 pred_win.erase()
             #carica le quote per tutti gli eventi selezionati
-            #TODO: da rivedere la progress bar per il caricamento delle quote perche la progressa si 
-            #ferma prima del 100% e non si vede il completamento
+            #TODO: non carica le quote per gli eventi diversi della data corrente
             elif (key == ord("o") and (self.events[selected].status == "NS")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(6))
@@ -1123,20 +1144,16 @@ class Winmenu:
                 return 1 #refresh code for now not used
             #read analized match if exist
             elif (key == ord("a") and (self.events[selected].analize != "")):
-                header_win.clear()
-                header_win.bkgd(curses.color_pair(7))
-                header_win.addstr(0, 3, f"Analized Match between {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
-                header_win.refresh()
-                footer_win.clear()
-                footer_win.bkgd(curses.color_pair(7))
-                footer_win.addstr(0, 3, "PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
-                footer_win.refresh()
-
-                self.create_window(4,4,self.height-6,self.width-6,150,150,12,self.events[selected].analize,title=f"Analized Match between {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
-                header_win.erase()
-                footer_win.erase()
-                self.screen.clear()
-
+  
+                curses.endwin()
+                console=Console()
+                console.clear()
+                analmarkdown=f"# {self.events[selected].teamhome} VS {self.events[selected].teamaway}\n {self.events[selected].analize}"
+                console.print(Markdown(analmarkdown))
+                console.print("\n\nPRESS 'Q' to close")
+        
+                pauseKeyQ()
+            #help option window key h
             elif (key == ord("h")):
                 header_win.clear()
                 header_win.bkgd(curses.color_pair(8))
@@ -1157,6 +1174,7 @@ class Winmenu:
                              "Press 'E' Prediction Expected Results",
                              "Press 'F' Start 11 Line UP",
                              "Press 'C' Show Standing",
+                             "Press 'L' Prediction Live Events",
                              "Press 'H' Help",
                              "Press 'Q' Exit"]
                 start_y=(self.height-len(optionshelp))//2

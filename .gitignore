@@ -3,3 +3,4 @@ test/
 predictions_history.json
 env*/
 now_venv
+.venv
