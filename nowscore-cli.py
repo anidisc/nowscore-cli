@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.44.3"
+version="0.45"
 
 import argparse
 import datetime
@@ -290,7 +290,7 @@ class Prediction():
                          "away":tab["comparison"]["total"]["away"]}
         
     #create a method that receive as parameter a text and call api openai whit apikey variable and retur a text as output
-    def gpt_call(prompt,squadra1,squadra2,odds,mode=1):
+    def gpt_call(prompt,squadra1,squadra2,odds,mode=1,elapsetime=None):
         #openai.api_key = openaikey
         #modulizziamo i prompt in modo da poter far scegliere all'user che tipo di pronostico vuole
         #TODO: aggiungere altri tipi di pronostici
@@ -395,7 +395,7 @@ class Prediction():
             """
         #prompt che mi restituisca il risultato esatto
         content4=f"""
-            Basandoti sulle statistiche dettagliate delle squadre {squadra1} e {squadra2}, comprese le prestazioni recenti, 
+            Basandoti sulle statistiche dettagliate delle squadre {squadra1} e {squadra2}, considera le prestazioni recenti, 
             la forma in casa e in trasferta, i gol fatti e subiti, e qualsiasi altra informazione rilevante, 
             analizza le probabilità di diversi risultati esatti della partita. Considera anche l'importanza della partita 
             per entrambe le squadre e come questo potrebbe influenzare il loro approccio al gioco.
@@ -411,8 +411,23 @@ class Prediction():
             O anche eventualmente piu di un risultato esatto se lo ritieni altamente probabile come [RE:2-1,1-2] ma l'unica condizione e che sia sempre sintetizzato come [RE:risultato_esatto1,risultato_esatto2,risultato_esatto3,..].
             Anche qui stilizza una tabella dei possibili risultati esatti in style markdown
             """
+        #prompt che analizza il pronostico in live in base alla situazione attuale
+        content5=f"""
+            Analizza la partita in corso tra {squadra1} e {squadra2} e cerca di fornire un pronostico in tempo reale
+            basato sulla situazione attuale del gioco. 
+            Guarda il tempo trascorso nella partita attuale che e' di {elapsetime} minuti, calcola quanto manca alla fine della partita
+            dei 90 minuti e considera la situazione attuale del punteggio e delle statistiche delle squadre.
+            Considera i gol segnati, le espulsioni, i cartellini gialli,
+            le sostituzioni e qualsiasi altra informazione rilevante che potrebbe influenzare il risultato finale.
+            Utilizza le statistiche della partita in corso e le prestazioni recenti delle squadre per calcolare le probabilità
+            di diversi risultati e fornire un pronostico accurato. Analizza la situazione attuale del gioco e cerca di prevedere
+            come si evolverà nei prossimi minuti. Fornisci una breve spiegazione su come hai raggiunto le tue conclusioni e
+            suggerisci essenzialmente chi vincera la partita o chi dovrebbe segnare il prossimo gol."""
+        
         #on selction on user compose pormpt by set mode parameter
         #content+=content1 if mode==1 else content2
+        message = f"""data questa classifica {prompt} attuale 
+                della partita tra {squadra1} contro {squadra2} """
         match mode:
             case 1:
                 content+=content1
@@ -422,6 +437,12 @@ class Prediction():
                 content+=content3
             case 4:
                 content+=content4
+            case 5:
+                content+=content5
+                message = f"""data la situazione attuale della partita tra {squadra1} contro {squadra2} 
+                            con questi dati attuali{prompt}"""
+                
+        #se abbiamo le quote della partita allegale al prompt
     
         
         if odds != None:
@@ -431,23 +452,15 @@ class Prediction():
                         di un altra con piu goal di scarto e dammi le quotazioni vantaggiose sempre se ce
                         ne puo essere la progabilita"""
         # messages = [ {"role": "system", "content":content} ]
-        message = f"""data questa classifica {prompt} fammi un pronostico 
-                della partita tra {squadra1} contro {squadra2} """
-        # if message:
-        #     messages.append(
-        #         {"role": "user", "content": message},
-        #     )
-        #     chat = openai.ChatCompletion.create(
-        #         model="gpt-3.5-turbo", messages=messages
-        #     )
-        # answer = chat.choices[0].message.content
+       
+
         client = OpenAI(api_key=openaikey)
 
         completion=client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role":"system","content":content},
-                {"role":"user","content":message}
+                {"role":"system","content":message},
+                {"role":"user","content":content}
             ]
         )
         return completion.choices[0].message.content
@@ -685,18 +698,8 @@ class Winmenu:
         self.height, self.width = self.screen.getmaxyx()
     # Definisci una funzione che prende una lista di liste di # Definisci una funzione che prende una lista di liste di stringhe come parametro
     def formatta_liste(self,eventi):
-        
-        liste=[]
-        for event in eventi:
-            event=load_saved_prediction(event)
-            liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
-                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",event.date,event.country," |",event.pronostic])
-        # Crea una lista vuota per memorizzare le liste formattate
-        liste_formattate = []
-        # Trova la lunghezza della parola più lunga nelle prime due posizioni di tutte le liste
-        max_len = max(len(lista[i]) for lista in liste for i in range(2))
-        #creaiamo un dict di chiave come il nome delle nazioni dei campionai e valore come emoji della bandiera della nazione rappresentante
         dict_country={"ARGENTINA":"🇦🇷",
+                    "DOMINICAN-REPUBLIC":"🇩🇴",  
                     "AUSTRALIA":"🇦🇺",
                     "BELGIUM":"🇧🇪",
                     "BRAZIL":"🇧🇷",
@@ -708,6 +711,8 @@ class Winmenu:
                     "FRANCE":"🇫🇷",
                     "GERMANY":"🇩🇪",
                     "GREECE":"🇬🇷",
+                    "REP. IRELAND":"🇮🇪",
+                    "REPUBULIC CZECH":"🇨🇿",
                     "MEXICO":"🇲🇽",
                     "NETHERLANDS":"🇳🇱",
                     "POLAND":"🇵🇱",
@@ -756,6 +761,20 @@ class Winmenu:
                     "TURKIY":"🇹🇷",
                     "UKRAINE":"🇺🇦",
                     "WORLD":"🌍"}
+        #calcoliamo la lunghezza massima di ogni della chiave in dict_country
+        max_len_country=max(len(key) for key in dict_country.keys())    
+
+        liste=[]
+        for event in eventi:
+            event=load_saved_prediction(event)
+            liste.append([event.teamhome,event.teamaway,event.goalshome,event.goalsaway,":",
+                       event.status,event.minutes+" " if int(event.minutes)<10 else event.minutes," - ",
+                       event.date,event.country.ljust(max_len_country)," : ",event.pronostic])
+        # Crea una lista vuota per memorizzare le liste formattate
+        liste_formattate = []
+        # Trova la lunghezza della parola più lunga nelle prime due posizioni di tutte le liste
+        max_len = max(len(lista[i]) for lista in liste for i in range(2))
+        #creaiamo un dict di chiave come il nome delle nazioni dei campionai e valore come emoji della bandiera della nazione rappresentante
         # Per ogni lista nella lista di liste
         for lista in liste:
             # Crea una stringa formattata usando il metodo join e il metodo format
@@ -772,7 +791,7 @@ class Winmenu:
                     break
             if not(found):
                 stringa=dict_country["WORLD"]+" "+stringa
-            # Aggiungi la stringa formattata alla lista delle liste formattate
+            #Aggiungi la stringa formattata alla lista delle liste formattate
             liste_formattate.append(stringa)
             # Restituisci la lista delle liste formattate
         return liste_formattate
@@ -787,12 +806,6 @@ class Winmenu:
         # Tabula i dati
         #table = tabulate2.tabulate(data_padded, headers=headers, tablefmt='plain')
         table=tabulate(data_padded, headers=headers, tablefmt='mixed')
-        # # Splitta la tabella in righe
-        # table_lines = table.split('\n')
-        # # Trova la lunghezza massima di qualsiasi riga
-        # max_length = max(len(line) for line in table_lines)
-        # # Riempie le righe mancanti con spazi vuoti per uniformare la lunghezza
-        # table_lines_padded = [line.ljust(max_length) for line in table_lines]
 
         return table
     def tabulate_strings(self,data,typetable="plain"):
@@ -819,7 +832,7 @@ class Winmenu:
     #per tanto esiste un evento live in corso
     def isLive(self,lista_di_stringhe):
         # Parole chiave da cercare
-        parole_chiave = ["1H", "2H"]    
+        parole_chiave = ["1H", "2H","HT"]    
         # Itera attraverso la lista di stringhe
         for stringa in lista_di_stringhe:
             # Normalizza le stringhe a maiuscole per rendere la ricerca insensibile al maiuscolo/minuscolo
@@ -895,8 +908,9 @@ class Winmenu:
         header_win = curses.newwin(1,self.width,0,0)
         footer_win=curses.newwin(1,self.width,self.height-1,0)
         info_win=curses.newwin(1,self.width,seth+1,0)
-        menu_win=curses.newwin(seth,len(max(options))+maxlenprediction,1,2)
-
+        #menu_win=curses.newwin(seth,len(max(options))+maxlenprediction,1,2)
+        #definiamo la finestra menu_win con le dimensioni massime di options e la lunghezza massima di ogni stringa
+        menu_win=curses.newwin(seth,len(max(options,key=len))+maxlenprediction,1,2)
         while True:
             header_win.clear()
             footer_win.clear()
@@ -1037,9 +1051,30 @@ class Winmenu:
 
             #previsioni per incontri live
             elif (key==ord("l")and (self.isLive(options))):
-                #TODO: scrivi codice per pronosticare eventi live
-                pass
-                
+                self.screen.clear()
+                self.screen.refresh()
+                curses.endwin()
+                try:
+                    datalivescore=self.events[selected].list_statistic()
+                    
+                    if datalivescore!=None:
+                        Console().clear()
+                        Console().print(Markdown((f"## Live Match Statistic and Prediction {self.events[selected].teamhome} VS {self.events[selected].teamaway}")))
+                        #tabella delle statistiche
+                        tablef=self.tabulate_data(datalivescore)
+                        predizione=Prediction.gpt_call(tablef,
+                                                       self.events[selected].teamhome,self.events[selected].teamaway,
+                                                       self.events[selected].odd,mode=5,
+                                                       elapsetime=self.events[selected].minutes)
+                        print(tabulate(datalivescore,headers="firstrow"))
+                        Console().print(Markdown(predizione))
+                    else:
+                        Console().print(Markdown("## No data to show"))
+                except:
+                    Console().print(Markdown("## Error in prediction"))
+                Console().print(Markdown("## Press [Q] to exit"))
+                pauseKeyQ()
+            #selezione data match               
                 
             #richiesta previsioni betting e confronto
             elif ((key == ord("p") or (key==ord('g') or (key==ord('d')or (key==ord('e'))))) and (self.events[selected].status == "NS")):
