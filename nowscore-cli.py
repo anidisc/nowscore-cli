@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.45"
+version="0.46"
 
 import argparse
 import datetime
@@ -21,9 +21,40 @@ from openai import OpenAI
 from rich.console import Console
 from rich.markdown import Markdown
 
+from textual.app import App, ComposeResult
+from textual.widgets import Header, Footer, Static, Button
+from textual.containers import ScrollableContainer
 
 import sys
 import platform
+
+#classe per la gestione della visualizzazione dei dati in modo markdown facendo uso della libreria textual
+class AnalizeViewerApp(App):
+    """A Textual app to manage stopwatches."""
+  
+    def __init__(self, markdown_text):
+        super().__init__()
+        self.markdown_text = Markdown(markdown_text)
+
+    BINDINGS = [("d", "toggle_dark", "Toggle dark mode"), ("q", "quit", "Quit the app")]
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the app."""
+        yield Header()
+        yield Footer()
+        #aggiungi un oggetto che permetta la scrittura di un testo scrollabile
+        yield ScrollableContainer(Static(self.markdown_text))
+ 
+    def action_toggle_dark(self) -> None:
+        """An action to toggle dark mode."""
+        self.dark = not self.dark
+
+    def action_quit(self) -> None:
+        """An action to quit the app."""
+        self.app.exit()
+        
+
+
 #cattura l'input da tastiera di un singolo carattere e verifica la piattaforma per la gestione del tasto q
 def pauseKeyQ():
     if platform.system() == 'Windows':
@@ -1067,13 +1098,15 @@ class Winmenu:
                                                        self.events[selected].odd,mode=5,
                                                        elapsetime=self.events[selected].minutes)
                         print(tabulate(datalivescore,headers="firstrow"))
-                        Console().print(Markdown(predizione))
+                        #Console().print(Markdown(predizione))
+                        AnalizeViewerApp(predizione).run()
                     else:
-                        Console().print(Markdown("## No data to show"))
+                        #Console().print(Markdown("## No data to show"))
+                        AnalizeViewerApp("## No data to show").run()
                 except:
                     Console().print(Markdown("## Error in prediction"))
-                Console().print(Markdown("## Press [Q] to exit"))
-                pauseKeyQ()
+                    Console().print(Markdown("## Press [Q] to exit"))
+                    pauseKeyQ()
             #selezione data match               
                 
             #richiesta previsioni betting e confronto
@@ -1124,7 +1157,8 @@ class Winmenu:
                 self.events[selected].pronostic=Prediction.compactOdds(predizione)
                 #salva/aggiorna la predizione sul server
                 upload_save_prediction(self.events[selected].idfixture,self.events[selected].pronostic,predizione)
-                self.create_window(4,4,self.height-6,self.width-6,150,self.width-10,5,predizione,title=f"Prevision: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                #self.create_window(4,4,self.height-6,self.width-6,150,self.width-10,5,predizione,title=f"Prevision: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                AnalizeViewerApp(predizione).run()
                 pred_win.erase()
             #carica le quote per tutti gli eventi selezionati
             #TODO: non carica le quote per gli eventi diversi della data corrente
@@ -1179,15 +1213,11 @@ class Winmenu:
                 return 1 #refresh code for now not used
             #read analized match if exist
             elif (key == ord("a") and (self.events[selected].analize != "")):
-  
+                #close curses and show app analizeviewer
                 curses.endwin()
-                console=Console()
-                console.clear()
-                analmarkdown=f"# {self.events[selected].teamhome} VS {self.events[selected].teamaway}\n {self.events[selected].analize}"
-                console.print(Markdown(analmarkdown))
-                console.print("\n\nPRESS 'Q' to close")
-        
-                pauseKeyQ()
+                analize_app=AnalizeViewerApp(self.events[selected].analize)
+                analize_app.run()
+
             #help option window key h
             elif (key == ord("h")):
                 header_win.clear()
