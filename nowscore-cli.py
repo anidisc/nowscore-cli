@@ -1158,8 +1158,12 @@ class Winmenu:
                 #salva/aggiorna la predizione sul server
                 upload_save_prediction(self.events[selected].idfixture,self.events[selected].pronostic,predizione)
                 #self.create_window(4,4,self.height-6,self.width-6,150,self.width-10,5,predizione,title=f"Prevision: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
-                AnalizeViewerApp(predizione).run()
+                pred_win.clear()
+                pred_win.refresh()
                 pred_win.erase()
+                curses.endwin()
+                AnalizeViewerApp(predizione).run()
+                
             #carica le quote per tutti gli eventi selezionati
             #TODO: non carica le quote per gli eventi diversi della data corrente
             elif (key == ord("o") and (self.events[selected].status == "NS")):
@@ -1327,8 +1331,8 @@ class Winmenu:
 
 def main(stdscr):
     if args.version:
-        print(f"NowScore - version {version}")
-        exit() #chiusura del programma dopo la visualizzazione della versione
+        #usciamo dal programma dopo la visualizzazione della versione ma non cancelliamo la finestra
+        return "version"
 
 
     if (args.league!=None) and (args.league.upper() in scl):
@@ -1358,12 +1362,14 @@ def main(stdscr):
                         ' '.join(t["form"]),t["status"]]
                     classifica.append(row)
             #stampa la classifica
+            curses.endwin()
             tabclassifica=tabulate(classifica,headers="firstrow",tablefmt="rounded_outline")
-            print("\n Standing of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
+            Console().print("\nStanding of "+scext[args.league.upper()]+" Championship update at: "+str(datetime.date.today())+" REM:"+str(rem)+"\n"
                 +tabclassifica
                 +"\n")
             #print(Prediction.gpt_call(tabulato+" analizza questa classifica"))
-            exit()
+            #pause=input("Press any key to continue...")
+            return "standing"
         else:
             tdelta=int(args.time_delta)
             if tdelta>=0:
@@ -1375,7 +1381,7 @@ def main(stdscr):
             
             selection=0
             while selection != -1:
-
+ 
                 #verifica se viene invocata la funzione livescore di tutti i match 
                 if (args.league.upper()=="LIVE"):
                     p,rem=get_live_match()
@@ -1395,21 +1401,38 @@ def main(stdscr):
                 try:
                     selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
                     if selection == -1:
-                        print(f"NOWScore {version} richiesta di uscita dal programma!")
-                        exit()
+                        #print(f"NOWScore {version} richiesta di uscita dal programma!")
+                        return "exit"
                 except ValueError as error:
-                    print(f"errore {error}")
-                    key=input("non ci sono eventi da visualizzare...(press any key)")
-                    break
+                    # Console().print(f"errore {error}")
+                    # key=input("non ci sono eventi da visualizzare...(press any key)")
+                    #break
+                    return "nodata"
 
     try:
         pass
     except:
-        print("non hai definito codice lega")
-        exit()
+        return "error"
 
-curses.wrapper(main)
+#curses.wrapper(main)
 #main()
+match curses.wrapper(main):
+    case "version":
+               
+        Console().print(f"NowScore - version [bold]{version}[/bold]")
+        
+    case "error":
+        Console().print(Markdown("## non hai definito codice lega"))
+    case "nodata":
+        Console().print(Markdown("## non ci sono eventi da visualizzare..."))
+    case "standing":
+        Console().print(Markdown("### classifica visualizzata"))
+    case "exit":
+        Console().print(Markdown(f"# NOWScore {version} Exit Request!"))
+    case _:
+        Console().print("[red]Generic ERROR!![/red]")
+        Console().print("[bold]Exit Program[/bold]")
+
 
 
 
