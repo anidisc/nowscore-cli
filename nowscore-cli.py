@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.46"
+version="0.47b"
 
 import argparse
 import datetime
@@ -31,27 +31,39 @@ import platform
 #classe per la gestione della visualizzazione dei dati in modo markdown facendo uso della libreria textual
 class AnalizeViewerApp(App):
     """A Textual app to manage stopwatches."""
-  
-    def __init__(self, markdown_text):
+
+    def __init__(self, markdown_text,color="white"):
         super().__init__()
         self.markdown_text = Markdown(markdown_text)
+        self.color=color
 
-    BINDINGS = [("d", "toggle_dark", "Toggle dark mode"), ("q", "quit", "Quit the app")]
+    BINDINGS = [("q", "quit", "Quit and back selection")] 
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header()
         yield Footer()
-        #aggiungi un oggetto che permetta la scrittura di un testo scrollabile
+        # aggiungi un oggetto che permetta la scrittura di un testo scrollabile
         yield ScrollableContainer(Static(self.markdown_text))
- 
-    def action_toggle_dark(self) -> None:
-        """An action to toggle dark mode."""
-        self.dark = not self.dark
+
+    # def action_toggle_dark(self) -> None:
+    #     """An action to toggle dark mode."""
+    #     self.dark = not self.dark
 
     def action_quit(self) -> None:
         """An action to quit the app."""
         self.app.exit()
+
+    def on_mount(self) -> None:
+        #self.screen.styles.background = "black" if self.dark else "white"
+        #modifica il titolo della app
+        self.title = f"NOWScore Soccer Events CLI v.{version}"
+        #self.query_one(Static).styles.background = "green"
+        self.query_one(Static).styles.color = self.color
+        #cambia il colore della scrollbar
+        self.query_one(ScrollableContainer).styles.scrollbar_color = self.color
+        #cambio il colore di sfondo del Footer
+        self.query_one(Footer).styles.background = self.color
         
 
 
@@ -726,6 +738,7 @@ class Winmenu:
         #pair color per segnalazione HELP
         curses.init_pair(11, curses.COLOR_WHITE, curses.COLOR_BLACK)
         curses.init_pair(12, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(13, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
         self.height, self.width = self.screen.getmaxyx()
     # Definisci una funzione che prende una lista di liste di # Definisci una funzione che prende una lista di liste di stringhe come parametro
     def formatta_liste(self,eventi):
@@ -1082,31 +1095,51 @@ class Winmenu:
 
             #previsioni per incontri live
             elif (key==ord("l")and (self.isLive(options))):
-                self.screen.clear()
-                self.screen.refresh()
-                curses.endwin()
+                
                 try:
+                    header_win.clear()
+                    header_win.bkgd(curses.color_pair(13))
+                    header_win.addstr(0,3,f"prediction STAT: {self.events[selected].teamhome} VS {self.events[selected].teamaway}")
+                    header_win.refresh()
+                    footer_win.clear()
+                    footer_win.bkgd(curses.color_pair(13))
+                    footer_win.addstr(0,3,"PRESS 'q' to close - PRESS 'ARROW UP/DOWN' to scroll text")
+                    footer_win.refresh()
+                    title=f"Analize LIVE-Match...: {self.events[selected].teamhome} vs {self.events[selected].teamaway}"
+                    pred_win=curses.newwin(3,len(title)+2,self.height//2,self.width//2-(len(title)//2))
+                    pred_win.box()
+                    pred_win.bkgd(curses.color_pair(13))           
+                    pred_win.addstr(1, 1, title)
+                    pred_win.refresh()
                     datalivescore=self.events[selected].list_statistic()
                     
                     if datalivescore!=None:
-                        Console().clear()
-                        Console().print(Markdown((f"## Live Match Statistic and Prediction {self.events[selected].teamhome} VS {self.events[selected].teamaway}")))
+                        # Console().clear()
+                        # Console().print(Markdown((f"## Live Match Statistic and Prediction {self.events[selected].teamhome} VS {self.events[selected].teamaway}")))
                         #tabella delle statistiche
-                        tablef=self.tabulate_data(datalivescore)
-                        predizione=Prediction.gpt_call(tablef,
+                        #tablef=self.tabulate_data(datalivescore)
+                        #tablef=tabulate(datalivescore,headers="columns")
+                        predizione=Prediction.gpt_call(datalivescore,
                                                        self.events[selected].teamhome,self.events[selected].teamaway,
                                                        self.events[selected].odd,mode=5,
                                                        elapsetime=self.events[selected].minutes)
-                        print(tabulate(datalivescore,headers="firstrow"))
+                        pred_win.clear()
+                        pred_win.refresh()  
+                        curses.endwin()
+                        #addpredizione=f"{tablef}\n\n< {predizione}"
                         #Console().print(Markdown(predizione))
-                        AnalizeViewerApp(predizione).run()
+                        #Console.clear()
+                        AnalizeViewerApp(predizione,color="white").run()
                     else:
                         #Console().print(Markdown("## No data to show"))
-                        AnalizeViewerApp("## No data to show").run()
-                except:
-                    Console().print(Markdown("## Error in prediction"))
-                    Console().print(Markdown("## Press [Q] to exit"))
-                    pauseKeyQ()
+                        #AnalizeViewerApp("## No data to show").run()
+                        self.create_window(5,2,6,50,50,50,3,"NO data to load",title="Error occurred")
+                except Exception as e:
+                    #stampa lerrore in caso di errore e il tipo di errore intercettato
+                    # Console().print(Markdown(f"## Error in prediction {e}"))
+                    # Console().print(Markdown("## Press [Q] to exit"))
+                    self.create_window(5,2,6,50,50,50,3,"Error in data loading",title="Error occurred")
+                    #pauseKeyQ()
             #selezione data match               
                 
             #richiesta previsioni betting e confronto
@@ -1162,7 +1195,7 @@ class Winmenu:
                 pred_win.refresh()
                 pred_win.erase()
                 curses.endwin()
-                AnalizeViewerApp(predizione).run()
+                AnalizeViewerApp(predizione,color="green").run()
                 
             #carica le quote per tutti gli eventi selezionati
             #TODO: non carica le quote per gli eventi diversi della data corrente
@@ -1404,8 +1437,9 @@ def main(stdscr):
                         #print(f"NOWScore {version} richiesta di uscita dal programma!")
                         return "exit"
                 except ValueError as error:
-                    # Console().print(f"errore {error}")
-                    # key=input("non ci sono eventi da visualizzare...(press any key)")
+                    curses.endwin()
+                    Console().print(f"errore {error}")
+                    key=input("...(press any key)")
                     #break
                     return "nodata"
 
@@ -1414,8 +1448,6 @@ def main(stdscr):
     except:
         return "error"
 
-#curses.wrapper(main)
-#main()
 match curses.wrapper(main):
     case "version":
                

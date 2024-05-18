@@ -1,4 +1,6 @@
 tabulate
 requests
-curses
-openai==0.28
+windows_curses
+openai
+rich
+textual
