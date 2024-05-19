@@ -22,7 +22,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static, Button
+from textual.widgets import Header, Footer, Static, Button, Markdown
 from textual.containers import ScrollableContainer
 
 import sys
@@ -34,7 +34,7 @@ class AnalizeViewerApp(App):
 
     def __init__(self, markdown_text,color="white"):
         super().__init__()
-        self.markdown_text = Markdown(markdown_text)
+        self.markdown_text = markdown_text
         self.color=color
 
     BINDINGS = [("q", "quit", "Quit and back selection")] 
@@ -44,7 +44,7 @@ class AnalizeViewerApp(App):
         yield Header()
         yield Footer()
         # aggiungi un oggetto che permetta la scrittura di un testo scrollabile
-        yield ScrollableContainer(Static(self.markdown_text))
+        yield ScrollableContainer(Markdown(self.markdown_text))
 
     # def action_toggle_dark(self) -> None:
     #     """An action to toggle dark mode."""
@@ -59,7 +59,7 @@ class AnalizeViewerApp(App):
         #modifica il titolo della app
         self.title = f"NOWScore Soccer Events CLI v.{version}"
         #self.query_one(Static).styles.background = "green"
-        self.query_one(Static).styles.color = self.color
+        self.query_one(Markdown).styles.color = self.color
         #cambia il colore della scrollbar
         self.query_one(ScrollableContainer).styles.scrollbar_color = self.color
         #cambio il colore di sfondo del Footer
