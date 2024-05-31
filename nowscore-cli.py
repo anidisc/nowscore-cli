@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 #Now score version
-version="0.47b"
+version="0.47c"
 
 import argparse
 import datetime
@@ -22,7 +22,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static, Button
+from textual.widgets import Header, Footer, Static, OptionList
 from textual.containers import ScrollableContainer
 
 import sys
@@ -65,6 +65,43 @@ class AnalizeViewerApp(App):
         #cambio il colore di sfondo del Footer
         self.query_one(Footer).styles.background = self.color
         
+#creiamo la classe che visualizzera nella app la lista degli eventi
+class EventViewerApp(App):
+    """classe per la gestione della lista delle app"""
+
+    BINDINGS = [("q", "quit", "Quit the application")]
+    CSS="""
+        OptionList {
+            background: black;
+            color: white;
+            margin: 1;
+            height: 50%;
+            align: center middle;
+
+        }   
+        Screen {
+            background: black;
+            align: center middle;
+        }
+
+    """
+    
+    def __init__(self, events_list):
+        super().__init__()
+        self.events_list = events_list
+    
+    def on_mount(self) -> None:
+        self.title = f"NOWScore Soccer Events CLI v.{version}"
+    
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the app."""
+        yield Header()
+        yield Footer()
+        yield OptionList(*self.events_list)
+    
+    def option_list_option_selected(self,event: OptionList.OptionSelected) -> None:
+        return event.option_index
+    
 
 
 #cattura l'input da tastiera di un singolo carattere e verifica la piattaforma per la gestione del tasto q
@@ -938,6 +975,7 @@ class Winmenu:
             exit()
         
         options=self.formatta_liste(self.events)
+        #selection_ev=EventViewerApp(options).run()
         seth=len(options)+2 if (len(options)+3)<self.height else self.height-3
         menu_items = len(options)
         max_items = self.height - 5
@@ -1433,6 +1471,7 @@ def main(stdscr):
 
                 try:
                     selection=Winmenu(ev,f"{scext[args.league.upper()]} From {tdeltafrom} to {tdeltato} REM:{rem}").menu()
+               
                     if selection == -1:
                         #print(f"NOWScore {version} richiesta di uscita dal programma!")
                         return "exit"
