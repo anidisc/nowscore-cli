@@ -4,3 +4,5 @@ predictions_history.json
 env*/
 now_venv
 .venv
+nscli-venv-archcraft/
+venv_nowscore/
