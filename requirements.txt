@@ -1,6 +1,5 @@
 tabulate
 requests
-windows_curses
 openai
 rich
 textual
